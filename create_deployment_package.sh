@@ -3,6 +3,16 @@
 # 🚀 LLM Gateway Deployment Package Creator
 # This script creates a complete deployment package for Azure App Service
 
+# ❌ You DON'T Need It If:
+# Using GitHub Actions with direct repository deployment
+# Azure pulls code directly from your GitHub repo
+# Model is already in Git LFS and accessible
+# ✅ You DO Need It If:
+# Manual deployment to Azure App Service
+# ZIP deployment instead of Git deployment
+# Custom startup scripts or configurations
+# Testing deployment package locally
+
 set -e  # Exit on any error
 
 echo "🚀 Creating LLM Gateway Deployment Package"
@@ -114,6 +124,8 @@ else
     print_warning "models/distilbert_llm_router directory not found - model will be downloaded during startup"
 fi
 
+print_status "DistilBERT model is included in the repository via Git LFS"
+
 # Copy static files
 print_status "Copying static files..."
 
@@ -169,16 +181,15 @@ echo "📦 Installing dependencies..."
 python3 -m pip install --user --upgrade pip
 python3 -m pip install --user -r requirements.txt
 
-# Check if model download is needed
+# Check if model is available
 echo "🤖 Checking for DistilBERT model..."
 if [ -d "models/distilbert_llm_router" ] && [ -f "models/distilbert_llm_router/model.safetensors" ]; then
     echo "✅ DistilBERT model found locally - using pre-loaded model!"
     echo "Model size: $(du -sh models/distilbert_llm_router | cut -f1)"
     echo "Model files: $(ls models/distilbert_llm_router/)"
-    echo "No download needed - app will start faster!"
+    echo "No download needed - model included in repository via Git LFS!"
 else
-    echo "📥 DistilBERT model not found locally - will download from Azure Blob Storage"
-    echo "This may take several minutes on first startup..."
+    echo "❌ DistilBERT model not found - check if Git LFS is working properly"
 fi
 
 # Start the application

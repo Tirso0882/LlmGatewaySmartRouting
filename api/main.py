@@ -121,65 +121,36 @@ def rule_based_routing(prompt: str):
 
 @app.on_event("startup")
 async def startup_event():
-    """Load the fine-tuned model on startup with Azure Blob Storage fallback"""
+    """Load the fine-tuned DistilBERT model on startup"""
     global fine_tuner
     
-    # Try to load DistilBERT from local path first
     try:
         print("🤖 Loading DistilBERT model from local path...")
         if DistilBERTFineTuner:
             fine_tuner = DistilBERTFineTuner()
             fine_tuner.load_model(model_path)
-        else:
-            raise ImportError("No model loader available")
-        print("✅ DistilBERT model loaded successfully from local path!")
-        return
-    except Exception as e:
-        print(f"⚠️ Local DistilBERT model loading failed: {e}")
-    
-    # Try to download from Azure Blob Storage
-    try:
-        print("📥 Attempting to download DistilBERT model from Azure Blob Storage...")
-        
-        # Check if Azure Storage SDK is available
-        try:
-            from azure_model_storage import AzureModelStorage
-        except ImportError:
-            print("⚠️ Azure Storage SDK not available, skipping download")
-            fine_tuner = None
-            return
-        
-        # Check if connection string is available
-        import os
-        if os.getenv('AZURE_STORAGE_CONNECTION_STRING'):
-            storage = AzureModelStorage()
-            blob_name = 'distilbert_llm_router_v1.zip'
             
-            if storage.model_exists(blob_name):
-                print("📥 Downloading DistilBERT model from Azure Blob Storage...")
-                storage.download_model(blob_name, model_path)
-                
-                # Try to load the downloaded model
-                try:
-                    if DistilBERTFineTuner:
-                        fine_tuner = DistilBERTFineTuner()
-                        fine_tuner.load_model(model_path)
-                    else:
-                        raise ImportError("No model loader available")
-                    print("✅ DistilBERT model downloaded and loaded successfully!")
-                    return
-                except Exception as e:
-                    print(f"❌ Downloaded model loading failed: {e}")
-            else:
-                print("⚠️ DistilBERT model not found in Azure Blob Storage")
+            # Test the model to ensure it's actually working
+            try:
+                test_predictions, test_confidences = fine_tuner.predict(["test prompt"])
+                print("✅ DistilBERT model loaded and tested successfully!")
+                print(f"Model path: {model_path}")
+                print(f"Test prediction: {test_predictions[0]} (confidence: {test_confidences[0]:.2%})")
+                return
+            except Exception as test_error:
+                print(f"❌ Model loaded but test failed: {test_error}")
+                fine_tuner = None
+                raise test_error
         else:
-            print("⚠️ AZURE_STORAGE_CONNECTION_STRING not found, skipping download")
+            raise ImportError("No DistilBERTFineTuner available")
             
     except Exception as e:
-        print(f"❌ Azure Blob Storage download failed: {e}")
+        print(f"⚠️ DistilBERT model loading failed: {e}")
+        print(f"Model path attempted: {model_path}")
+        fine_tuner = None
     
     print("📋 Falling back to rule-based routing")
-    fine_tuner = None
+    print("ℹ️ App will use keyword-based routing instead of ML-based routing")
 
 @app.get("/")
 async def root():
@@ -229,11 +200,19 @@ async def route_prompt(request: RoutingRequest):
         start_time = time.time()
         
         if fine_tuner is not None:
-            # Use DistilBERT model
-            predictions, confidences = fine_tuner.predict([request.prompt])
-            recommended_model = predictions[0]
-            confidence = confidences[0]
-            routing_method = "DistilBERT"
+            try:
+                # Use DistilBERT model
+                predictions, confidences = fine_tuner.predict([request.prompt])
+                recommended_model = predictions[0]
+                confidence = confidences[0]
+                routing_method = "DistilBERT"
+            except Exception as model_error:
+                print(f"⚠️ DistilBERT prediction failed: {model_error}, falling back to rule-based routing")
+                # Mark model as broken for future requests
+                fine_tuner = None
+                # Fallback to rule-based routing
+                recommended_model, confidence = rule_based_routing(request.prompt)
+                routing_method = "Rule-based (DistilBERT failed)"
         else:
             # Fallback to rule-based routing
             recommended_model, confidence = rule_based_routing(request.prompt)
