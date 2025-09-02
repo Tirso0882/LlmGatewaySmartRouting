@@ -69,6 +69,3 @@ data/*.pkl
 
 # Documentation
 docs/models/distilbert_llm_router/
-*.safetensors
-*.bin
-*.pt

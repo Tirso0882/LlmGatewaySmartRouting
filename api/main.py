@@ -108,6 +108,17 @@ AVAILABLE_MODELS = {
     }
 }
 
+def rule_based_routing(prompt: str):
+    """Fallback rule-based routing when DistilBERT model is not available"""
+    prompt_lower = prompt.lower()
+    
+    if any(word in prompt_lower for word in ['complex', 'reasoning', 'analysis', 'problem', 'solve', 'calculate']):
+        return 'o3', 0.85
+    elif any(word in prompt_lower for word in ['simple', 'quick', 'fast', 'basic', 'hello', 'how are you']):
+        return 'gpt-4o-mini', 0.90
+    else:
+        return 'o4-mini', 0.75
+
 @app.on_event("startup")
 async def startup_event():
     """Load the fine-tuned model on startup with Azure Blob Storage fallback"""
