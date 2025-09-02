@@ -103,6 +103,5 @@ jobs:
         package: ./llm_gateway_deployment.zip
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         slot-name: production
-        startup-command: "bash startup.sh"
       env:
         AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
