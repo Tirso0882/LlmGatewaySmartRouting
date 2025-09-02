@@ -1,0 +1,64 @@
+{
+  "rule_based": {
+    "model_name": "Rule-Based Analyzer",
+    "metrics": {
+      "accuracy": 0.615,
+      "f1_macro": 0.6114101154853506,
+      "f1_weighted": 0.6114093148231079,
+      "precision_macro": 0.6675118126667562,
+      "recall_macro": 0.6147293833860998,
+      "cohen_kappa": 0.4222472331645095,
+      "inference_time_ms": 0.15415310859680176
+    },
+    "detailed_report": "              precision    recall  f1-score   support\n\n     o4-mini       0.51      0.82      0.63        67\n gpt-4o-mini       0.82      0.46      0.59        67\n          o3       0.67      0.56      0.61        66\n\n    accuracy                           0.61       200\n   macro avg       0.67      0.61      0.61       200\nweighted avg       0.67      0.61      0.61       200\n",
+    "confusion_matrix": [
+      [
+        37,
+        22,
+        7
+      ],
+      [
+        12,
+        55,
+        0
+      ],
+      [
+        6,
+        30,
+        31
+      ]
+    ]
+  },
+  "fine_tuned": {
+    "model_name": "Fine-Tuned DistilBERT",
+    "metrics": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "f1_weighted": 1.0,
+      "precision_macro": 1.0,
+      "recall_macro": 1.0,
+      "cohen_kappa": 1.0,
+      "inference_time_ms": 21.141940355300903
+    },
+    "detailed_report": "              precision    recall  f1-score   support\n\n gpt-4o-mini       1.00      1.00      1.00        67\n          o3       1.00      1.00      1.00        67\n     o4-mini       1.00      1.00      1.00        66\n\n    accuracy                           1.00       200\n   macro avg       1.00      1.00      1.00       200\nweighted avg       1.00      1.00      1.00       200\n",
+    "confusion_matrix": [
+      [
+        67,
+        0,
+        0
+      ],
+      [
+        0,
+        67,
+        0
+      ],
+      [
+        0,
+        0,
+        66
+      ]
+    ]
+  },
+  "test_dataset_size": 200,
+  "evaluation_date": "2025-09-01T20:12:36.927306"
+}

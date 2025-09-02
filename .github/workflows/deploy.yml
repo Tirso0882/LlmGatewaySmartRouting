@@ -1,0 +1,108 @@
+name: Deploy LLM Gateway to Azure App Service
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: llm-gateway-1756826876
+  AZURE_RESOURCE_GROUP: llm-gateway-rg
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r api/requirements_api.txt
+        
+    - name: Create deployment package
+      run: |
+        # Create deployment directory structure
+        mkdir -p deployment_package/static
+        
+        # Copy main API file
+        cp api/main.py deployment_package/main.py
+        
+        # Copy supporting files (with error handling)
+        cp api/mock_llm_responses.py deployment_package/ 2>/dev/null || echo "⚠️ mock_llm_responses.py not found"
+        cp api/real_llm_integration_example.py deployment_package/ 2>/dev/null || echo "⚠️ real_llm_integration_example.py not found"
+        cp src/azure_model_storage.py deployment_package/ 2>/dev/null || echo "⚠️ azure_model_storage.py not found"
+        cp src/distilbert_inference.py deployment_package/ 2>/dev/null || echo "⚠️ distilbert_inference.py not found"
+        
+        # Copy static files
+        cp api/static/index.html deployment_package/static/ 2>/dev/null || echo "⚠️ index.html not found"
+        cp api/static/nexus-ai-logo.png deployment_package/static/ 2>/dev/null || echo "⚠️ logo not found"
+        
+        # Create requirements.txt from API requirements
+        cp api/requirements_api.txt deployment_package/requirements.txt
+        
+        # Create startup script
+        cat > deployment_package/startup.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 Starting LLM Gateway via GitHub Actions"
+        echo "========================================="
+        echo "Python version: $(python3 --version)"
+        echo "Working directory: $(pwd)"
+        echo "Files present: $(ls -la)"
+        
+        # Install pip first if not available
+        echo "📦 Setting up Python environment..."
+        if ! python3 -m pip --version &> /dev/null; then
+            echo "Installing pip..."
+            curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+            python3 get-pip.py --user
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+        
+        # Install dependencies
+        echo "📦 Installing dependencies..."
+        python3 -m pip install --user --upgrade pip
+        python3 -m pip install --user -r requirements.txt
+        
+        # Check if model download is needed
+        echo "🤖 Checking for DistilBERT model..."
+        if [ ! -d "models/distilbert_llm_router" ] || [ ! -f "models/distilbert_llm_router/model.safetensors" ]; then
+            echo "📥 DistilBERT model will be downloaded during app startup from Azure Blob Storage"
+        else
+            echo "✅ DistilBERT model found locally!"
+        fi
+        
+        # Start the application
+        echo "🌐 Starting FastAPI application..."
+        python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
+        EOF
+        chmod +x deployment_package/startup.sh
+        
+        # Show the deployment structure for debugging
+        echo "📁 Deployment package structure:"
+        find deployment_package -type f | sort
+        
+        # Create ZIP file
+        cd deployment_package
+        zip -r ../llm_gateway_deployment.zip . -x "*.pyc" "*.pyo" "__pycache__/*" "*.DS_Store"
+        cd ..
+        
+        echo "📦 Deployment package created: llm_gateway_deployment.zip"
+        
+    - name: Deploy to Azure App Service
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: ./llm_gateway_deployment.zip
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        slot-name: production
+        startup-command: "bash startup.sh"
+      env:
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}

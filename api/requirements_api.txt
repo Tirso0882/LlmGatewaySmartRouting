@@ -1,0 +1,10 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.3
+# Use pre-built PyTorch CPU wheels
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==2.1.0+cpu
+transformers==4.35.2
+azure-storage-blob==12.19.0
+python-dotenv==1.0.0
+requests==2.31.0

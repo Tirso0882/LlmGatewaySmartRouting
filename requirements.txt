@@ -1,0 +1,43 @@
+# Core dependencies for LLM Gateway Smart Routing
+azure-functions==1.23.0
+openai==1.101.0
+azure-cosmos==4.9.0
+azure-search-documents==11.5.3
+azure-storage-blob==12.26.0
+azureml-core==1.60.0.post1
+
+# Data processing and ML
+pandas==2.3.2
+numpy==2.3.2
+scikit-learn==1.7.1
+transformers==4.55.4
+torch==2.8.0
+
+# Web framework and API
+fastapi==0.116.1
+uvicorn==0.35.0
+pydantic==2.11.7
+python-multipart==0.0.9
+
+# Testing
+pytest==8.4.1
+pytest-asyncio==1.1.0
+
+# Jupyter notebooks for experiments
+jupyter==1.1.1
+notebook==7.4.5
+ipykernel==6.30.1
+
+# Utilities
+python-dotenv==1.0.1
+requests==2.32.5
+aiohttp==3.12.15
+tqdm==4.66.1
+joblib==1.3.2
+
+# Logging and monitoring
+structlog==25.4.0
+
+# Visualization
+seaborn==0.13.2
+matplotlib==3.10.5
