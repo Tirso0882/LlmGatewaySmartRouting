@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        lfs: true
       
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -29,6 +31,38 @@ jobs:
         
     - name: Create deployment package
       run: |
+        # Verify Git LFS model download - ALL required files
+        echo "📊 Verifying DistilBERT model and all required files..."
+        
+        # Check for all required files
+        required_files=(
+            "models/distilbert_llm_router/model.safetensors"
+            "models/distilbert_llm_router/training_history.json"
+            "models/distilbert_llm_router/label_encoder.pkl"
+            "models/distilbert_llm_router/vocab.txt"
+            "models/distilbert_llm_router/special_tokens_map.json"
+            "models/distilbert_llm_router/tokenizer_config.json"
+            "models/distilbert_llm_router/config.json"
+        )
+        
+        missing_files=()
+        for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+                echo "✅ $file found: $(ls -lh "$file")"
+            else
+                echo "❌ $file NOT found!"
+                missing_files+=("$file")
+            fi
+        done
+        
+        if [ ${#missing_files[@]} -gt 0 ]; then
+            echo "❌ Missing required files: ${missing_files[*]}"
+            echo "Available in models/distilbert_llm_router/: $(ls -la models/distilbert_llm_router/ 2>/dev/null || echo 'not found')"
+            exit 1
+        fi
+        
+        echo "🎉 All DistilBERT model files verified successfully!"
+        
         # Create deployment directory structure
         mkdir -p deployment_package/static
         
@@ -45,8 +79,8 @@ jobs:
         cp api/static/index.html deployment_package/static/ 2>/dev/null || echo "⚠️ index.html not found"
         cp api/static/nexus-ai-logo.png deployment_package/static/ 2>/dev/null || echo "⚠️ logo not found"
 
-        # Copy DistilBERT model directory (from Git LFS)
-        cp -r models/distilbert_llm_router/ deployment_package/models/ 2>/dev/null || echo "⚠️ models directory not found"
+        # Copy DistilBERT model directory (from Git LFS) - PRESERVE PATH STRUCTURE
+        cp -r models/ deployment_package/ 2>/dev/null || echo "⚠️ models directory not found"
         
         # Create requirements.txt from API requirements
         cp api/requirements_api.txt deployment_package/requirements.txt
@@ -56,6 +90,36 @@ jobs:
         find deployment_package -type f | sort
         echo "📊 Model files:"
         ls -la deployment_package/models/ 2>/dev/null || echo "Models directory not found"
+        echo "🤖 Model verification in deployment package:"
+        
+        # Check for all required files in deployment package
+        deployment_required_files=(
+            "deployment_package/models/distilbert_llm_router/model.safetensors"
+            "deployment_package/models/distilbert_llm_router/training_history.json"
+            "deployment_package/models/distilbert_llm_router/label_encoder.pkl"
+            "deployment_package/models/distilbert_llm_router/vocab.txt"
+            "deployment_package/models/distilbert_llm_router/special_tokens_map.json"
+            "deployment_package/models/distilbert_llm_router/tokenizer_config.json"
+            "deployment_package/models/distilbert_llm_router/config.json"
+        )
+        
+        deployment_missing_files=()
+        for file in "${deployment_required_files[@]}"; do
+            if [ -f "$file" ]; then
+                echo "✅ $file correctly placed: $(ls -lh "$file")"
+            else
+                echo "❌ $file NOT found in deployment package!"
+                deployment_missing_files+=("$file")
+            fi
+        done
+        
+        if [ ${#deployment_missing_files[@]} -gt 0 ]; then
+            echo "❌ Missing files in deployment package: ${deployment_missing_files[*]}"
+            echo "Available in deployment package: $(find deployment_package/models/ -type f 2>/dev/null || echo 'not found')"
+            exit 1
+        fi
+        
+        echo "🎉 All DistilBERT model files correctly placed in deployment package!"
 
         # Create startup script
         cat > deployment_package/startup.sh << 'EOF'
@@ -80,17 +144,39 @@ jobs:
         python3 -m pip install --user --upgrade pip
         python3 -m pip install --user -r requirements.txt
         
-        # Check if model download is needed
-        echo "🤖 Checking for DistilBERT model..."
-        if [ -d "models/distilbert_llm_router" ] && [ -f "models/distilbert_llm_router/model.safetensors" ]; then
-            echo "✅ DistilBERT model found in deployment package!"
-            echo "Model path: $(pwd)/models/distilbert_llm_router"
-        else
-            echo "❌ DistilBERT model not found in deployment package"
+        # Check if ALL DistilBERT model files are present
+        echo "🤖 Checking for ALL DistilBERT model files..."
+        
+        # Required files for model to work
+        startup_required_files=(
+            "models/distilbert_llm_router/model.safetensors"
+            "models/distilbert_llm_router/training_history.json"
+            "models/distilbert_llm_router/label_encoder.pkl"
+            "models/distilbert_llm_router/vocab.txt"
+            "models/distilbert_llm_router/special_tokens_map.json"
+            "models/distilbert_llm_router/tokenizer_config.json"
+            "models/distilbert_llm_router/config.json"
+        )
+        
+        startup_missing_files=()
+        for file in "${startup_required_files[@]}"; do
+            if [ -f "$file" ]; then
+                echo "✅ $file found: $(ls -lh "$file")"
+            else
+                echo "❌ $file NOT found!"
+                startup_missing_files+=("$file")
+            fi
+        done
+        
+        if [ ${#startup_missing_files[@]} -gt 0 ]; then
+            echo "❌ Missing required files for startup: ${startup_missing_files[*]}"
             echo "Available files: $(ls -la)"
             echo "Models directory: $(ls -la models/ 2>/dev/null || echo 'not found')"
             exit 1
         fi
+        
+        echo "🎉 All DistilBERT model files verified for startup!"
+        echo "Model path: $(pwd)/models/distilbert_llm_router"
         
         # Start the application
         echo "🌐 Starting FastAPI application..."
@@ -108,6 +194,7 @@ jobs:
         cd ..
         
         echo "📦 Deployment package created: llm_gateway_deployment.zip"
+        echo "📊 Final package size: $(ls -lh llm_gateway_deployment.zip)"
         
     - name: Deploy to Azure App Service
       uses: azure/webapps-deploy@v3
