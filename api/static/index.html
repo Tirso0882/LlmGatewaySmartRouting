@@ -531,11 +531,230 @@
             100% { transform: rotate(360deg); }
         }
 
+        .metrics-section {
+            margin-bottom: 30px;
+        }
+
+        .metrics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .metrics-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2D3748;
+            margin: 0;
+        }
+
+
+
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
+        }
+
+        .routing-mode-section {
+            background: #FFFFFF;
+            border-radius: 12px;
+            padding: 20px;
             margin-bottom: 30px;
+            border: 1px solid rgba(107, 70, 193, 0.1);
+            box-shadow: 0 2px 8px rgba(107, 70, 193, 0.05);
+        }
+
+        .routing-mode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .routing-mode-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2D3748;
+            margin: 0;
+        }
+
+        .mode-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .mode-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #6B7280;
+            cursor: help;
+            position: relative;
+        }
+
+        .mode-label:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1F2937;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 5px;
+        }
+
+        .mode-label:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1F2937;
+            margin-bottom: -5px;
+            z-index: 1000;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #E2E8F0;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #6B46C1;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .mode-description {
+            padding: 15px;
+            background: #F7FAFC;
+            border-radius: 8px;
+            border-left: 4px solid #6B46C1;
+        }
+
+        .mode-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #4A5568;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .mode-info i {
+            color: #6B46C1;
+            font-size: 1.1rem;
+        }
+
+        .current-mode-indicator {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #6B46C1 0%, #8B5CF6 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(107, 70, 193, 0.3);
+        }
+
+        .mode-badge.rule-based {
+            background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+        }
+
+        .mode-badge.distilbert {
+            background: linear-gradient(135deg, #6B46C1 0%, #8B5CF6 100%);
+            box-shadow: 0 2px 8px rgba(107, 70, 193, 0.3);
+        }
+
+        .routing-method-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: #F3F4F6;
+            color: #6B7280;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin: 8px 0;
+            border: 1px solid #E5E7EB;
+        }
+
+        .routing-method-badge i {
+            color: #6B46C1;
+            font-size: 0.9rem;
+        }
+
+        .response-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: #FEF3C7;
+            color: #92400E;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin: 8px 0;
+            border: 1px solid #F59E0B;
+        }
+
+        .response-type-badge i {
+            color: #D97706;
+            font-size: 0.9rem;
         }
 
         .metric-card {
@@ -610,6 +829,22 @@
             .button-group {
                 flex-direction: column;
             }
+
+            .routing-mode-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .mode-toggle-container {
+                align-self: center;
+            }
+
+            .metrics-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
         }
     </style>
 </head>
@@ -626,22 +861,57 @@
             <p class="subtitle">Enterprise-grade intelligent routing system with fine-tuned DistilBERT</p>
         </div>
 
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-value" id="totalRequests">0</div>
-                <div class="metric-label">Total Requests</div>
+        <div class="metrics-section">
+            <div class="metrics-header">
+                <h3><i class="fas fa-chart-bar"></i> System Metrics</h3>
             </div>
-            <div class="metric-card">
-                <div class="metric-value" id="avgResponseTime">0ms</div>
-                <div class="metric-label">Avg Response Time</div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="totalRequests">0</div>
+                    <div class="metric-label">Total Requests</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="avgResponseTime">0ms</div>
+                    <div class="metric-label">Avg Response Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="successRate">100%</div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="activeModels">3</div>
+                    <div class="metric-label">Active Models</div>
+                </div>
             </div>
-            <div class="metric-card">
-                <div class="metric-value" id="successRate">100%</div>
-                <div class="metric-label">Success Rate</div>
+        </div>
+
+        <div class="routing-mode-section">
+            <div class="routing-mode-header">
+                <h3><i class="fas fa-route"></i> Routing Mode</h3>
+                <div class="mode-toggle-container">
+                    <span class="mode-label" title="Fast, deterministic routing using predefined rules">Rule-based</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="routingModeToggle" aria-label="Toggle between rule-based and DistilBERT routing">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="mode-label" title="AI-powered intelligent routing using fine-tuned machine learning model">DistilBERT</span>
+                </div>
             </div>
-            <div class="metric-card">
-                <div class="metric-value" id="activeModels">3</div>
-                <div class="metric-label">Active Models</div>
+            <div class="mode-description">
+                <div class="mode-info" id="ruleBasedInfo">
+                    <i class="fas fa-cogs"></i>
+                    <strong>Rule-based Routing:</strong> Fast, deterministic routing using predefined rules and patterns.
+                </div>
+                <div class="mode-info" id="distilbertInfo" style="display: none;">
+                    <i class="fas fa-brain"></i>
+                    <strong>DistilBERT Routing:</strong> AI-powered intelligent routing using fine-tuned machine learning model.
+                </div>
+            </div>
+            <div class="current-mode-indicator">
+                <div class="mode-badge" id="currentModeBadge">
+                    <i class="fas fa-cogs"></i>
+                    <span>Rule-based Mode Active</span>
+                </div>
             </div>
         </div>
 
@@ -708,9 +978,12 @@
 
         // Initialize the dashboard
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing dashboard...');
             loadModels();
             initializeChart();
-            updateMetrics();
+            loadMetrics();
+            initializeRoutingMode();
+            console.log('Dashboard initialization complete');
         });
 
         async function loadModels() {
@@ -792,12 +1065,16 @@
             
             try {
                 const startTime = Date.now();
+                const routingMode = getCurrentRoutingMode();
                 const response = await fetch('/route', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ prompt: prompt })
+                    body: JSON.stringify({ 
+                        prompt: prompt,
+                        routing_mode: routingMode
+                    })
                 });
                 
                 const endTime = Date.now();
@@ -807,7 +1084,8 @@
                     const data = await response.json();
                     displayResult(data, responseTime);
                     updatePerformanceChart(responseTime);
-                    updateMetrics();
+                    // Refresh metrics from backend after successful request
+                    await loadMetrics();
                 } else {
                     throw new Error('Failed to get routing result');
                 }
@@ -887,12 +1165,16 @@
             
             try {
                 const startTime = Date.now();
+                const routingMode = getCurrentRoutingMode();
                 const response = await fetch('/route/batch', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ prompts: prompts })
+                    body: JSON.stringify({ 
+                        prompts: prompts,
+                        routing_mode: routingMode
+                    })
                 });
                 
                 const endTime = Date.now();
@@ -902,7 +1184,8 @@
                     const data = await response.json();
                     displayBatchResults(data, responseTime, batchName);
                     updatePerformanceChart(responseTime);
-                    updateMetrics();
+                    // Refresh metrics from backend after successful batch request
+                    await loadMetrics();
                 } else {
                     throw new Error('Failed to get batch routing result');
                 }
@@ -1069,6 +1352,14 @@
                         <div class="result-model">${data.recommended_model}</div>
                         <div class="result-confidence">${(data.confidence * 100).toFixed(1)}%</div>
                     </div>
+                    <div class="routing-method-badge">
+                        <i class="fas fa-route"></i>
+                        <span>${data.reasoning.includes('DistilBERT') ? 'AI Routing' : 'Rule-based Routing'}</span>
+                    </div>
+                    <div class="response-type-badge">
+                        <i class="fas fa-${data.reasoning.includes('DistilBERT') ? 'brain' : 'cogs'}"></i>
+                        <span>${data.reasoning.includes('DistilBERT') ? 'Real LLM Response' : 'Mock Response'}</span>
+                    </div>
                     <div class="result-details">
                         <div class="detail-item">
                             <div class="detail-label">Response Time</div>
@@ -1130,6 +1421,14 @@
                             <div class="result-model">${index + 1}. ${result.recommended_model}</div>
                             <div class="result-confidence">${(result.confidence * 100).toFixed(1)}%</div>
                         </div>
+                        <div class="routing-method-badge">
+                            <i class="fas fa-route"></i>
+                            <span>${result.reasoning.includes('DistilBERT') ? 'AI Routing' : 'Rule-based Routing'}</span>
+                        </div>
+                        <div class="response-type-badge">
+                            <i class="fas fa-${result.reasoning.includes('DistilBERT') ? 'brain' : 'cogs'}"></i>
+                            <span>${result.reasoning.includes('DistilBERT') ? 'Real LLM Response' : 'Mock Response'}</span>
+                        </div>
                         <div class="result-details">
                             <div class="detail-item">
                                 <div class="detail-label">Prompt</div>
@@ -1179,13 +1478,28 @@
             performanceChart.update();
         }
 
-        function updateMetrics() {
-            requestCount++;
-            document.getElementById('totalRequests').textContent = requestCount;
-            
-            if (requestCount > 0) {
-                const avgTime = Math.round(totalResponseTime / requestCount);
-                document.getElementById('avgResponseTime').textContent = avgTime + 'ms';
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/metrics');
+                const metrics = await response.json();
+                
+                // Update the UI with real backend metrics
+                document.getElementById('totalRequests').textContent = metrics.total_requests;
+                document.getElementById('avgResponseTime').textContent = Math.round(metrics.avg_response_time_ms) + 'ms';
+                document.getElementById('successRate').textContent = Math.round(metrics.success_rate) + '%';
+                
+                // Update local variables for chart
+                requestCount = metrics.total_requests;
+                totalResponseTime = metrics.avg_response_time_ms * metrics.total_requests;
+                
+            } catch (error) {
+                console.error('Failed to load metrics:', error);
+                // Fallback to local metrics if backend fails
+                document.getElementById('totalRequests').textContent = requestCount;
+                if (requestCount > 0) {
+                    const avgTime = Math.round(totalResponseTime / requestCount);
+                    document.getElementById('avgResponseTime').textContent = avgTime + 'ms';
+                }
             }
         }
 
@@ -1218,6 +1532,71 @@
 
         // Auto-refresh models every 30 seconds
         setInterval(loadModels, 30000);
+        
+        // Auto-refresh metrics every 10 seconds
+        setInterval(loadMetrics, 10000);
+
+        // Routing mode management
+        function initializeRoutingMode() {
+            const toggle = document.getElementById('routingModeToggle');
+            const ruleBasedInfo = document.getElementById('ruleBasedInfo');
+            const distilbertInfo = document.getElementById('distilbertInfo');
+            
+            // Load saved preference from localStorage
+            const savedMode = localStorage.getItem('routingMode') || 'rule-based';
+            toggle.checked = savedMode === 'distilbert';
+            updateModeDisplay(toggle.checked);
+            
+            // Add change event listener
+            toggle.addEventListener('change', function() {
+                const isDistilBERT = this.checked;
+                const mode = isDistilBERT ? 'distilbert' : 'rule-based';
+                
+                // Save preference
+                localStorage.setItem('routingMode', mode);
+                
+                // Update display
+                updateModeDisplay(isDistilBERT);
+                
+                // Show confirmation
+                showSuccess(`Switched to ${mode} routing mode`);
+            });
+        }
+
+        function updateModeDisplay(isDistilBERT) {
+            const ruleBasedInfo = document.getElementById('ruleBasedInfo');
+            const distilbertInfo = document.getElementById('distilbertInfo');
+            const modeBadge = document.getElementById('currentModeBadge');
+            const modeBadgeIcon = modeBadge.querySelector('i');
+            const modeBadgeText = modeBadge.querySelector('span');
+            
+            if (isDistilBERT) {
+                ruleBasedInfo.style.display = 'none';
+                distilbertInfo.style.display = 'block';
+                
+                // Update mode badge for DistilBERT
+                modeBadge.className = 'mode-badge distilbert';
+                modeBadgeIcon.className = 'fas fa-brain';
+                modeBadgeText.textContent = 'DistilBERT Mode Active';
+            } else {
+                ruleBasedInfo.style.display = 'block';
+                distilbertInfo.style.display = 'none';
+                
+                // Update mode badge for Rule-based
+                modeBadge.className = 'mode-badge rule-based';
+                modeBadgeIcon.className = 'fas fa-cogs';
+                modeBadgeText.textContent = 'Rule-based Mode Active';
+            }
+        }
+
+
+
+        function getCurrentRoutingMode() {
+            const toggle = document.getElementById('routingModeToggle');
+            return toggle.checked ? 'distilbert' : 'rule-based';
+        }
+
+
     </script>
 </body>
 </html>
