@@ -33,6 +33,13 @@ class RealLLMIntegration:
     def call_real_llm(self, model_name: str, prompt: str) -> Tuple[str, float]:
         """Make real API call to Azure OpenAI"""
         
+        # Check if we have the required configuration
+        if not self.api_key:
+            raise Exception("API key not configured - check O3_API_KEY environment variable")
+        
+        if model_name not in self.endpoints or not self.endpoints[model_name]:
+            raise Exception(f"Endpoint not configured for model {model_name} - check environment variables")
+        
         start_time = time.time()
         
         headers = {
@@ -49,20 +56,26 @@ class RealLLMIntegration:
                 'messages': [{'role': 'user', 'content': prompt}],
             }
         
-        response = requests.post(
-            self.endpoints[model_name],
-            headers=headers,
-            json=payload
-        )
-        end_time = time.time()
-        response_time = (end_time - start_time) * 1000
-        
-        if response.status_code == 200:
-            result = response.json()
-            llm_response = result['choices'][0]['message']['content']
-            return llm_response, response_time
-        else:
-            raise Exception(f"API call failed: {response.status_code} - {response.text}")
+        try:
+            response = requests.post(
+                self.endpoints[model_name],
+                headers=headers,
+                json=payload,
+                timeout=60  # Increased timeout for complex queries
+            )
+            end_time = time.time()
+            response_time = (end_time - start_time) * 1000
+            
+            if response.status_code == 200:
+                result = response.json()
+                llm_response = result['choices'][0]['message']['content']
+                return llm_response, response_time
+            else:
+                raise Exception(f"API call failed: {response.status_code} - {response.text}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Network error: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Unexpected error: {str(e)}")
 
 
 def test_real_llm_integration():
