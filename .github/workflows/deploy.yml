@@ -38,16 +38,25 @@ jobs:
         # Copy supporting files (with error handling)
         cp api/mock_llm_responses.py deployment_package/ 2>/dev/null || echo "⚠️ mock_llm_responses.py not found"
         cp api/real_llm_integration_example.py deployment_package/ 2>/dev/null || echo "⚠️ real_llm_integration_example.py not found"
-        cp src/azure_model_storage.py deployment_package/ 2>/dev/null || echo "⚠️ azure_model_storage.py not found"
+        cp api/cost_tracker.py deployment_package/ 2>/dev/null || echo "⚠️ cost_tracker.py not found"
         cp src/distilbert_inference.py deployment_package/ 2>/dev/null || echo "⚠️ distilbert_inference.py not found"
         
         # Copy static files
         cp api/static/index.html deployment_package/static/ 2>/dev/null || echo "⚠️ index.html not found"
         cp api/static/nexus-ai-logo.png deployment_package/static/ 2>/dev/null || echo "⚠️ logo not found"
+
+        # Copy DistilBERT model directory (from Git LFS)
+        cp -r models/distilbert_llm_router/ deployment_package/models/ 2>/dev/null || echo "⚠️ models directory not found"
         
         # Create requirements.txt from API requirements
         cp api/requirements_api.txt deployment_package/requirements.txt
         
+        # Show deployment structure for debugging
+        echo "�� Deployment package structure:"
+        find deployment_package -type f | sort
+        echo "📊 Model files:"
+        ls -la deployment_package/models/ 2>/dev/null || echo "Models directory not found"
+
         # Create startup script
         cat > deployment_package/startup.sh << 'EOF'
         #!/bin/bash
@@ -73,10 +82,14 @@ jobs:
         
         # Check if model download is needed
         echo "🤖 Checking for DistilBERT model..."
-        if [ ! -d "models/distilbert_llm_router" ] || [ ! -f "models/distilbert_llm_router/model.safetensors" ]; then
-            echo "📥 DistilBERT model will be downloaded during app startup from Azure Blob Storage"
+        if [ -d "models/distilbert_llm_router" ] && [ -f "models/distilbert_llm_router/model.safetensors" ]; then
+            echo "✅ DistilBERT model found in deployment package!"
+            echo "Model path: $(pwd)/models/distilbert_llm_router"
         else
-            echo "✅ DistilBERT model found locally!"
+            echo "❌ DistilBERT model not found in deployment package"
+            echo "Available files: $(ls -la)"
+            echo "Models directory: $(ls -la models/ 2>/dev/null || echo 'not found')"
+            exit 1
         fi
         
         # Start the application
