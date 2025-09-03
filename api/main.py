@@ -13,7 +13,7 @@ import os
 import random
 import sys
 import time
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -36,6 +36,8 @@ except ImportError:
     except ImportError:
         print("⚠️ No DistilBERTFineTuner available - falling back to rule-based routing")
         DistilBERTFineTuner = None
+
+from cost_tracker import cost_tracker
 from mock_llm_responses import mock_llm
 from real_llm_integration_example import RealLLMIntegration
 
@@ -116,6 +118,7 @@ class RoutingResponse(BaseModel):
     alternative_models: List[str]
     llm_response: str
     llm_response_time_ms: float
+    cost_info: Optional[Dict[str, Any]] = None
 
 class HealthResponse(BaseModel):
     status: str
@@ -135,21 +138,18 @@ AVAILABLE_MODELS = {
     'o3': {
         'name': 'o3',
         'description': 'High-accuracy model for complex reasoning',
-        'cost_per_1k_tokens': 0.060,
         'avg_response_time_ms': 5000,
         'best_for': ['complex_reasoning', 'advanced_analysis', 'stem_problems']
     },
     'gpt-4o-mini': {
         'name': 'gpt-4o-mini', 
         'description': 'Fast and cost-effective for simple tasks',
-        'cost_per_1k_tokens': 0.0001,
         'avg_response_time_ms': 400,
         'best_for': ['simple_queries', 'quick_responses', 'cost_optimization']
     },
     'o4-mini': {
         'name': 'o4-mini',
         'description': 'Balanced model for moderate complexity',
-        'cost_per_1k_tokens': 0.015,
         'avg_response_time_ms': 2000,
         'best_for': ['moderate_complexity', 'balanced_performance']
     }
@@ -355,6 +355,21 @@ async def get_metrics():
         "startup_test_completed": metrics_tracker.startup_test_completed
     }
 
+@app.get("/costs")
+async def get_cost_summary():
+    """Get comprehensive cost summary and token usage"""
+    return cost_tracker.get_cost_summary()
+
+@app.get("/pricing")
+async def get_model_pricing():
+    """Get current model pricing table"""
+    return {
+        "pricing_table": cost_tracker.get_model_pricing_table(),
+        "last_updated": "2025-01-27",
+        "provider": "Azure OpenAI",
+        "note": "Prices are per 1M tokens. Use /costs for real-time usage tracking."
+    }
+
 @app.post("/route", response_model=RoutingResponse)
 async def route_prompt(request: RoutingRequest):
     """Route a single prompt to the best LLM"""
@@ -441,6 +456,18 @@ async def route_prompt(request: RoutingRequest):
                     llm_response_time = 100.0  # Default response time
                     print("✅ Default response generated")
         
+        # Track cost for this request
+        cost_info = cost_tracker.track_request_cost(
+            model_name=recommended_model,
+            prompt=request.prompt,
+            response=llm_response,
+            session_id=request.session_id,
+            use_cached_input=False,  # Could be enhanced based on request
+            use_batch_api=False
+        )
+        
+        print(f"💰 Cost tracked: {cost_info['cost_breakdown']['total_cost']:.6f} USD")
+        
         print(f"🎉 Routing completed successfully in {inference_time:.2f}ms")
         
         # Log routing summary
@@ -463,7 +490,8 @@ async def route_prompt(request: RoutingRequest):
             reasoning=reasoning,
             alternative_models=alternative_models,
             llm_response=llm_response,
-            llm_response_time_ms=llm_response_time
+            llm_response_time_ms=llm_response_time,
+            cost_info=cost_info
         )
         
     except Exception as e:
@@ -545,6 +573,16 @@ async def route_batch(request: BatchRoutingRequest):
                         llm_response = f"Response from {recommended_model}: {prompt}"
                         llm_response_time = 100.0
             
+            # Track cost for this batch item
+            cost_info = cost_tracker.track_request_cost(
+                model_name=recommended_model,
+                prompt=prompt,
+                response=llm_response,
+                session_id=request.session_id if hasattr(request, 'session_id') else None,
+                use_cached_input=False,
+                use_batch_api=True  # Batch processing gets batch pricing
+            )
+            
             results.append(RoutingResponse(
                 prompt=prompt,
                 recommended_model=recommended_model,
@@ -553,7 +591,8 @@ async def route_batch(request: BatchRoutingRequest):
                 reasoning=reasoning,
                 alternative_models=alternative_models,
                 llm_response=llm_response,
-                llm_response_time_ms=llm_response_time
+                llm_response_time_ms=llm_response_time,
+                cost_info=cost_info
             ))
         
         return BatchRoutingResponse(

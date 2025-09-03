@@ -86,13 +86,7 @@ class DistilBERTFineTuner:
             'val_f1': []
         }
         
-        print(f"Using device: {self.device}")
-        if self.device == 'mps':
-            print("🚀 Using Apple Silicon GPU (MPS) for accelerated training!")
-        elif self.device == 'cuda':
-            print("🚀 Using NVIDIA GPU (CUDA) for accelerated training!")
-        else:
-            print("⚠️ Using CPU for training (slower)")
+        print(f"🤖 DistilBERT initialized on device: {self.device}")
     
     def prepare_data(self, df: pd.DataFrame, test_size: float = 0.2) -> Tuple:
         """Prepare data for training"""
@@ -265,6 +259,13 @@ class DistilBERTFineTuner:
         
         print(f"\nStarting training for {epochs} epochs...")
         print(f"Total training steps: {total_steps}")
+        
+        if self.device == 'mps':
+            print("🚀 Using Apple Silicon GPU (MPS) for accelerated training!")
+        elif self.device == 'cuda':
+            print("🚀 Using NVIDIA GPU (CUDA) for accelerated training!")
+        else:
+            print("⚠️ Using CPU for training (slower)")
         
         best_f1 = 0.0
         best_model_state = None
