@@ -1,8 +1,7 @@
 fastapi==0.104.1
 uvicorn==0.24.0
 pydantic==2.5.3
-# Use compatible NumPy version to avoid conflicts
-numpy==1.24.3
+numpy==1.26.4
 # Use pre-built PyTorch CPU wheels
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==2.1.0+cpu

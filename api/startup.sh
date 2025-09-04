@@ -24,12 +24,14 @@ fi
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-if [ -f "api/requirements_api.txt" ]; then
-    pip install --user -r api/requirements_api.txt
+if [ -f "requirements.txt" ]; then
+    echo "📋 Found requirements.txt, installing dependencies..."
+    pip install --user -r requirements.txt
 elif [ -f "requirements_api.txt" ]; then
-    pip install --user requirements_api.txt
+    echo "📋 Found requirements_api.txt, installing dependencies..."
+    pip install --user -r requirements_api.txt
 else
-    echo "⚠️ No requirements.txt found, installing basic dependencies..."
+    echo "⚠️ No requirements file found, installing basic dependencies..."
     pip install --user fastapi uvicorn requests python-dotenv transformers torch scikit-learn
 fi
 
