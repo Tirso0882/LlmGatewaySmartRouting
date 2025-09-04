@@ -388,6 +388,46 @@
             font-family: 'Inter', sans-serif;
         }
 
+        .routing-decision {
+            border-left-color: #10B981 !important;
+            background: linear-gradient(135deg, #F0FDF4 0%, #F9FAFB 100%);
+        }
+
+        .loading-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6B7280;
+            font-style: italic;
+        }
+
+        .loading-placeholder p {
+            margin: 10px 0;
+            font-size: 0.95rem;
+        }
+
+        .fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .demo-mode {
+            border-left-color: #F59E0B !important;
+            background: linear-gradient(135deg, #FFFBEB 0%, #F9FAFB 100%);
+        }
+
+        .demo-mode .response-header {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            color: #92400E;
+        }
+
+        .demo-mode .response-header i {
+            color: #F59E0B;
+        }
+
         .code-block {
             background: #1A202C;
             border: 1px solid #2D3748;
@@ -1236,9 +1276,11 @@
             showLoading(true);
             
             try {
-                const startTime = Date.now();
                 const routingMode = getCurrentRoutingMode();
-                const response = await fetch('/route', {
+                
+                // Step 1: Get routing decision immediately
+                const decisionStartTime = Date.now();
+                const decisionResponse = await fetch('/route/decision', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1249,18 +1291,45 @@
                     })
                 });
                 
-                const endTime = Date.now();
-                const responseTime = endTime - startTime;
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    displayResult(data, responseTime);
-                    updatePerformanceChart(responseTime);
-                    // Refresh metrics from backend after successful request
-                    await loadMetrics();
-                } else {
-                    throw new Error('Failed to get routing result');
+                if (!decisionResponse.ok) {
+                    throw new Error('Failed to get routing decision');
                 }
+                
+                const decisionData = await decisionResponse.json();
+                const decisionTime = Date.now() - decisionStartTime;
+                
+                // Display routing decision immediately
+                displayRoutingDecision(decisionData, decisionTime);
+                
+                // Step 2: Generate LLM response
+                const llmStartTime = Date.now();
+                const llmResponse = await fetch('/route/response', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        prompt: prompt,
+                        model: decisionData.recommended_model,
+                        routing_mode: routingMode
+                    })
+                });
+                
+                if (!llmResponse.ok) {
+                    throw new Error('Failed to get LLM response');
+                }
+                
+                const llmData = await llmResponse.json();
+                const llmTime = Date.now() - llmStartTime;
+                const totalTime = decisionTime + llmTime;
+                
+                // Display LLM response
+                displayLLMResponse(llmData, llmTime, decisionData);
+                
+                updatePerformanceChart(totalTime);
+                // Refresh metrics from backend after successful request
+                await loadMetrics();
+                
             } catch (error) {
                 showError('Error testing prompt: ' + error.message);
             } finally {
@@ -1518,8 +1587,11 @@
             const resultsDiv = document.getElementById('results');
             const formattedResponse = formatLLMResponse(data.llm_response);
             
+            // Check if this is a demo mode response (LLM unavailable)
+            const isDemoMode = data.llm_response.includes('🚫 **LLM Access Unavailable**');
+            
             const resultHtml = `
-                <div class="result-item">
+                <div class="result-item ${isDemoMode ? 'demo-mode' : ''}">
                     <div class="result-header">
                         <div class="result-model">${data.recommended_model}</div>
                         <div class="result-confidence">${(data.confidence * 100).toFixed(1)}%</div>
@@ -1529,8 +1601,13 @@
                         <span>${data.reasoning.includes('DistilBERT') ? 'AI Routing' : 'Rule-based Routing'}</span>
                     </div>
                     <div class="response-type-badge">
-                        <i class="fas fa-${data.reasoning.includes('DistilBERT') ? 'brain' : 'cogs'}"></i>
-                        <span>${data.reasoning.includes('DistilBERT') ? 'Real LLM Response' : 'Mock Response'}</span>
+                        ${isDemoMode ? `
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Demo Mode - LLM Unavailable</span>
+                        ` : `
+                            <i class="fas fa-${data.reasoning.includes('DistilBERT') ? 'brain' : 'cogs'}"></i>
+                            <span>${data.reasoning.includes('DistilBERT') ? 'Real LLM Response' : 'Mock Response'}</span>
+                        `}
                     </div>
                     <div class="result-details">
                         <div class="detail-item">
@@ -1549,7 +1626,7 @@
                             <div class="detail-label">Reasoning</div>
                             <div class="detail-value">${data.reasoning}</div>
                         </div>
-                        ${data.cost_info ? `
+                        ${data.cost_info && !isDemoMode ? `
                         <div class="detail-item">
                             <div class="detail-label">Cost</div>
                             <div class="detail-value">$${data.cost_info.cost_breakdown?.total_cost?.toFixed(6) || '0.000000'}</div>
@@ -1562,8 +1639,13 @@
                     </div>
                     <div class="llm-response">
                         <div class="response-header">
-                            <i class="fas fa-robot"></i>
-                            <strong>AI Response</strong>
+                            ${isDemoMode ? `
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Demo Mode - LLM Unavailable</strong>
+                            ` : `
+                                <i class="fas fa-robot"></i>
+                                <strong>AI Response</strong>
+                            `}
                         </div>
                         <div class="response-content">
                             ${formattedResponse}
@@ -1575,6 +1657,146 @@
             
             // Update costs after displaying result
             loadCosts();
+        }
+
+        // New function to display routing decision immediately
+        function displayRoutingDecision(data, responseTime) {
+            const resultsDiv = document.getElementById('results');
+            
+            const resultHtml = `
+                <div class="result-item routing-decision">
+                    <div class="result-header">
+                        <div class="result-model">${data.recommended_model}</div>
+                        <div class="result-confidence">${(data.confidence * 100).toFixed(1)}%</div>
+                    </div>
+                    <div class="routing-method-badge">
+                        <i class="fas fa-route"></i>
+                        <span>${data.reasoning.includes('DistilBERT') ? 'AI Routing' : 'Rule-based Routing'}</span>
+                    </div>
+                    <div class="result-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Routing Time</div>
+                            <div class="detail-value">${responseTime}ms</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Inference Time</div>
+                            <div class="detail-value">${data.inference_time_ms}ms</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Reasoning</div>
+                            <div class="detail-value">${data.reasoning}</div>
+                        </div>
+                    </div>
+                    <div class="llm-response">
+                        <div class="response-header">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <strong>Generating AI Response...</strong>
+                        </div>
+                        <div class="response-content">
+                            <div class="loading-placeholder">
+                                <p>🤖 AI is thinking and generating a response...</p>
+                                <p>This may take a few moments depending on the complexity of your request.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultsDiv.innerHTML = resultHtml + resultsDiv.innerHTML;
+        }
+
+        // New function to update with LLM response
+        function displayLLMResponse(llmData, llmTime, decisionData) {
+            const resultsDiv = document.getElementById('results');
+            const routingDecisionItem = resultsDiv.querySelector('.routing-decision');
+            
+            if (routingDecisionItem) {
+                // Check if this is a demo mode response (LLM unavailable)
+                const isDemoMode = llmData.llm_response.includes('🚫 **LLM Access Unavailable**');
+                
+                // Update the existing routing decision item with LLM response
+                const formattedResponse = formatLLMResponse(llmData.llm_response);
+                
+                // Update response type badge
+                const responseTypeBadge = routingDecisionItem.querySelector('.response-type-badge');
+                if (responseTypeBadge) {
+                    if (isDemoMode) {
+                        responseTypeBadge.innerHTML = `
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Demo Mode - LLM Unavailable</span>
+                        `;
+                    } else {
+                        responseTypeBadge.innerHTML = `
+                            <i class="fas fa-${decisionData.reasoning.includes('DistilBERT') ? 'brain' : 'cogs'}"></i>
+                            <span>${decisionData.reasoning.includes('DistilBERT') ? 'Real LLM Response' : 'Mock Response'}</span>
+                        `;
+                    }
+                }
+                
+                // Add LLM response time to details
+                const detailsDiv = routingDecisionItem.querySelector('.result-details');
+                if (detailsDiv) {
+                    const llmTimeItem = document.createElement('div');
+                    llmTimeItem.className = 'detail-item';
+                    llmTimeItem.innerHTML = `
+                        <div class="detail-label">LLM Response Time</div>
+                        <div class="detail-value">${llmTime}ms</div>
+                    `;
+                    detailsDiv.appendChild(llmTimeItem);
+                    
+                    // Add cost info if available and not in demo mode
+                    if (llmData.cost_info && !isDemoMode) {
+                        const costItem = document.createElement('div');
+                        costItem.className = 'detail-item';
+                        costItem.innerHTML = `
+                            <div class="detail-label">Cost</div>
+                            <div class="detail-value">$${llmData.cost_info.cost_breakdown?.total_cost?.toFixed(6) || '0.000000'}</div>
+                        `;
+                        detailsDiv.appendChild(costItem);
+                        
+                        const tokensItem = document.createElement('div');
+                        tokensItem.className = 'detail-item';
+                        tokensItem.innerHTML = `
+                            <div class="detail-label">Tokens</div>
+                            <div class="detail-value">${llmData.cost_info.input_tokens || 0} + ${llmData.cost_info.output_tokens || 0}</div>
+                        `;
+                        detailsDiv.appendChild(tokensItem);
+                    }
+                }
+                
+                // Update the LLM response section
+                const llmResponseDiv = routingDecisionItem.querySelector('.llm-response');
+                if (llmResponseDiv) {
+                    if (isDemoMode) {
+                        llmResponseDiv.innerHTML = `
+                            <div class="response-header">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Demo Mode - LLM Unavailable</strong>
+                            </div>
+                            <div class="response-content">
+                                ${formattedResponse}
+                            </div>
+                        `;
+                        // Add demo mode styling
+                        routingDecisionItem.classList.add('demo-mode');
+                    } else {
+                        llmResponseDiv.innerHTML = `
+                            <div class="response-header">
+                                <i class="fas fa-robot"></i>
+                                <strong>AI Response</strong>
+                            </div>
+                            <div class="response-content">
+                                ${formattedResponse}
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Remove the routing-decision class since it's now complete
+                routingDecisionItem.classList.remove('routing-decision');
+                
+                // Update costs after displaying result
+                loadCosts();
+            }
         }
 
         function displayBatchResults(data, totalTime, batchName = "Batch") {
@@ -1678,8 +1900,15 @@
 
         async function loadMetrics() {
             try {
+                console.log('📊 Loading metrics from backend...');
                 const response = await fetch('/metrics');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const metrics = await response.json();
+                console.log('📊 Metrics loaded:', metrics);
                 
                 // Update the UI with real backend metrics
                 document.getElementById('totalRequests').textContent = metrics.total_requests;
@@ -1690,14 +1919,20 @@
                 requestCount = metrics.total_requests;
                 totalResponseTime = metrics.avg_response_time_ms * metrics.total_requests;
                 
+                console.log('📊 Metrics UI updated successfully');
+                
             } catch (error) {
-                console.error('Failed to load metrics:', error);
+                console.error('❌ Failed to load metrics:', error);
                 // Fallback to local metrics if backend fails
                 document.getElementById('totalRequests').textContent = requestCount;
                 if (requestCount > 0) {
                     const avgTime = Math.round(totalResponseTime / requestCount);
                     document.getElementById('avgResponseTime').textContent = avgTime + 'ms';
+                } else {
+                    document.getElementById('avgResponseTime').textContent = '0ms';
                 }
+                document.getElementById('successRate').textContent = '100%';
+                console.log('📊 Using fallback metrics');
             }
         }
 
