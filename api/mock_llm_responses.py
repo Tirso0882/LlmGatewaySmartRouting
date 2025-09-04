@@ -133,19 +133,19 @@ class MockLLMResponseGenerator:
             features = "Efficiency and maintainability"
         
         return f"""
-## 💻 **{code_type}**
+## 💻 {code_type}
 
 {response}
 
-### 📋 **Code Quality:**
-- **Efficiency:** Optimized for performance
-- **Readability:** Clean, well-documented code
-- **Maintainability:** Follows best practices
+### 📋 Code Quality:
+- Efficiency: Optimized for performance
+- Readability: Clean, well-documented code
+- Maintainability: Follows best practices
 
-### 🚀 **Implementation Notes:**
-- **Best Practices:** Industry-standard coding patterns
-- **Error Handling:** Robust error management
-- **Documentation:** Clear code comments
+### 🚀 Implementation Notes:
+- Best Practices: Industry-standard coding patterns
+- Error Handling: Robust error management
+- Documentation: Clear code comments
 """
     
     def _format_math_response(self, response: str) -> str:
@@ -162,19 +162,19 @@ class MockLLMResponseGenerator:
             approach = "Mathematical principles and techniques"
         
         return f"""
-## 🧮 **{method_type}**
+## 🧮 {method_type}
 
 {response}
 
-### 📐 **Solution Approach:**
-1. **Problem Analysis:** Understanding the equation structure
-2. **Solution Method:** {approach}
-3. **Verification:** Confirming mathematical consistency
+### 📐 Solution Approach:
+1. Problem Analysis: Understanding the equation structure
+2. Solution Method: {approach}
+3. Verification: Confirming mathematical consistency
 
-### 💡 **Key Mathematical Concepts:**
-- **Equation solving techniques**
-- **Mathematical verification**
-- **Logical reasoning**
+### 💡 Key Mathematical Concepts:
+- Equation solving techniques
+- Mathematical verification
+- Logical reasoning
 """
     
     def _format_weather_response(self, response: str) -> str:
@@ -195,19 +195,19 @@ class MockLLMResponseGenerator:
                 break
         
         return f"""
-## 🌤️ **Weather Information**
+## 🌤️ Weather Information
 
 {response}
 
-### 📊 **Current Conditions:**
-- **Temperature:** {temp_match if temp_match else 'Variable'}
-- **Sky Condition:** {condition_match if condition_match else 'Mixed'}
-- **Wind:** Included in detailed response above
+### 📊 Current Conditions:
+- Temperature: {temp_match if temp_match else 'Variable'}
+- Sky Condition: {condition_match if condition_match else 'Mixed'}
+- Wind: Included in detailed response above
 
-### 🌍 **Weather Context:**
-- **Seasonal Patterns:** Typical for this time of year
-- **Atmospheric Conditions:** Pressure system influences
-- **Activity Recommendations:** Weather-appropriate suggestions
+### 🌍 Weather Context:
+- Seasonal Patterns: Typical for this time of year
+- Atmospheric Conditions: Pressure system influences
+- Activity Recommendations: Weather-appropriate suggestions
 """
     
     def _format_general_response(self, response: str) -> str:
@@ -231,19 +231,19 @@ class MockLLMResponseGenerator:
             context = "Fundamental principles and real-world relevance"
         
         return f"""
-## 📚 **{content_type}**
+## 📚 {content_type}
 
 {response}
 
-### 🎯 **Key Insights:**
-- **Core Concept:** {response.split("'")[1] if "'" in response else 'Main topic'}
-- **Key Benefits:** {key_points}
-- **Practical Value:** {context}
+### 🎯 Key Insights:
+- Core Concept: {response.split("'")[1] if "'" in response else 'Main topic'}
+- Key Benefits: {key_points}
+- Practical Value: {context}
 
-### 💡 **Why This Matters:**
-- **Understanding:** Builds foundational knowledge
-- **Application:** Useful across different domains
-- **Growth:** Enables better decision-making
+### 💡 Why This Matters:
+- Understanding: Builds foundational knowledge
+- Application: Useful across different domains
+- Growth: Enables better decision-making
 """
     
     def _classify_prompt(self, prompt: str) -> str:

@@ -213,11 +213,11 @@ def format_llm_response_beautifully(response: str, model_name: str, prompt: str,
     
     # Create beautiful header
     header = f"""
-# 🤖 **{model_name.upper()}** Response
+# 🤖 {model_name.upper()} Response
 
-**Model Type:** {model_description}
-**Response Time:** {response_time:.2f}ms
-**Query:** {prompt[:100]}{'...' if len(prompt) > 100 else ''}
+Model Type: {model_description}
+Response Time: {response_time:.2f}ms
+Query: {prompt[:100]}{'...' if len(prompt) > 100 else ''}
 
 ---
 
@@ -227,70 +227,70 @@ def format_llm_response_beautifully(response: str, model_name: str, prompt: str,
     if '```' in response:
         # Code response
         formatted_content = f"""
-## 💻 **Code Solution**
+## 💻 Code Solution
 
 {response}
 
-### 📋 **Key Features:**
-- **Efficiency:** Optimized for performance
-- **Readability:** Clean, well-documented code
-- **Maintainability:** Follows best practices
+### 📋 Key Features:
+- Efficiency: Optimized for performance
+- Readability: Clean, well-documented code
+- Maintainability: Follows best practices
 
-### 🚀 **Implementation Notes:**
-- **Best Practices:** Industry-standard coding patterns
-- **Error Handling:** Robust error management
-- **Documentation:** Clear code comments
+### 🚀 Implementation Notes:
+- Best Practices: Industry-standard coding patterns
+- Error Handling: Robust error management
+- Documentation: Clear code comments
 """
     elif any(word in prompt.lower() for word in ['solve', 'equation', 'calculate', 'math']):
         # Math response
         formatted_content = f"""
-## 🧮 **Mathematical Solution**
+## 🧮 Mathematical Solution
 
 {response}
 
-### 📐 **Step-by-Step Breakdown:**
-1. **Problem Analysis:** Understanding the equation structure
-2. **Solution Method:** Applying appropriate mathematical principles
-3. **Verification:** Confirming the solution is correct
+### 📐 Step-by-Step Breakdown:
+1. Problem Analysis: Understanding the equation structure
+2. Solution Method: Applying appropriate mathematical principles
+3. Verification: Confirming the solution is correct
 
-### 💡 **Mathematical Concepts:**
-- **Problem-solving strategies**
-- **Mathematical verification**
-- **Solution optimization**
+### 💡 Mathematical Concepts:
+- Problem-solving strategies
+- Mathematical verification
+- Solution optimization
 """
     elif any(word in prompt.lower() for word in ['weather', 'temperature', 'forecast']):
         # Weather response
         formatted_content = f"""
-## 🌤️ **Weather Information**
+## 🌤️ Weather Information
 
 {response}
 
-### 📊 **Weather Summary:**
-- **Current Conditions:** Detailed analysis
-- **Forecast:** Predictive information
-- **Recommendations:** Activity suggestions
+### 📊 Weather Summary:
+- Current Conditions: Detailed analysis
+- Forecast: Predictive information
+- Recommendations: Activity suggestions
 
-### 🌍 **Weather Context:**
-- **Seasonal Patterns:** Time-of-year factors
-- **Atmospheric Conditions:** Environmental factors
-- **Local Influences:** Regional characteristics
+### 🌍 Weather Context:
+- Seasonal Patterns: Time-of-year factors
+- Atmospheric Conditions: Environmental factors
+- Local Influences: Regional characteristics
 """
     else:
         # General response
         formatted_content = f"""
-## 📚 **Comprehensive Answer**
+## 📚 Comprehensive Answer
 
 {response}
 
-### 🎯 **Key Points:**
-- **Main Topic:** {prompt.split()[0] if prompt else 'General Information'}
-- **Important Details:** Highlighted in the response above
-- **Practical Applications:** Real-world relevance
+### 🎯 Key Points:
+- Main Topic: {prompt.split()[0] if prompt else 'General Information'}
+- Important Details: Highlighted in the response above
+- Practical Applications: Real-world relevance
 
-### 🔍 **Additional Context:**
-- **Background Information:** Supporting details
-- **Related Concepts:** Connected topics
-- **Further Reading:** Suggested areas for exploration
+### 🔍 Additional Context:
+- Background Information: Supporting details
+- Related Concepts: Connected topics
+- Further Reading: Suggested areas for exploration
 """
     
     # Add footer with model insights
@@ -298,12 +298,12 @@ def format_llm_response_beautifully(response: str, model_name: str, prompt: str,
 
 ---
 
-💡 **Model Insights:**
-- **Confidence:** {random.randint(85, 98)}%
-- **Processing:** {model_info.get('avg_response_time_ms', 'N/A')}ms average
-- **Specialization:** {model_info.get('best_for', ['General tasks'])[0] if model_info.get('best_for') else 'General tasks'}
+💡 Model Insights:
+- Confidence: {random.randint(85, 98)}%
+- Processing: {model_info.get('avg_response_time_ms', 'N/A')}ms average
+- Specialization: {model_info.get('best_for', ['General tasks'])[0] if model_info.get('best_for') else 'General tasks'}
 
-🔗 **Learn More:** This response was generated using {model_name} for optimal performance.
+🔗 Learn More: This response was generated using {model_name} for optimal performance.
 """
     
     return header + formatted_content + footer
@@ -482,23 +482,23 @@ async def route_prompt(request: RoutingRequest):
             except Exception as mock_error:
                 print(f"⚠️ Mock response failed: {mock_error}, using informative message")
                 # Fallback to informative message
-                llm_response = f"""🚫 **LLM Access Unavailable**
+                llm_response = f"""🚫 LLM Access Unavailable
 
-**Model Selected:** {recommended_model}
-**Reasoning:** The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+Model Selected: {recommended_model}
+Reasoning: The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-**What this means:**
-- ✅ **Routing Decision:** Successfully completed
-- ✅ **Model Selection:** {recommended_model} was chosen as the optimal model
-- ❌ **LLM Response:** Cannot be generated at this time
+What this means:
+- ✅ Routing Decision: Successfully completed
+- ✅ Model Selection: {recommended_model} was chosen as the optimal model
+- ❌ LLM Response: Cannot be generated at this time
 
-**Possible reasons:**
+Possible reasons:
 - LLM service is temporarily unavailable
 - API keys or credentials need to be configured
 - Network connectivity issues
 - Service quota limits reached
 
-**Next steps:**
+Next steps:
 - Check your LLM service configuration
 - Verify API keys and permissions
 - Try again in a few moments
@@ -515,26 +515,26 @@ async def route_prompt(request: RoutingRequest):
             except Exception as e:
                 print(f"⚠️ Real LLM call failed: {e}, using informative message")
                 # Fallback to informative message instead of mock
-                llm_response = f"""🚫 **LLM Access Unavailable**
+                llm_response = f"""🚫 LLM Access Unavailable
 
-**Model Selected:** {recommended_model}
-**Reasoning:** The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+Model Selected: {recommended_model}
+Reasoning: The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-**What this means:**
-- ✅ **AI Routing:** Successfully completed with DistilBERT
-- ✅ **Model Selection:** {recommended_model} was chosen as the optimal model
-- ❌ **LLM Response:** Cannot be generated at this time
+What this means:
+- ✅ AI Routing: Successfully completed with DistilBERT
+- ✅ Model Selection: {recommended_model} was chosen as the optimal model
+- ❌ LLM Response: Cannot be generated at this time
 
-**Error Details:** {str(e)}
+Error Details: {str(e)}
 
-**Possible reasons:**
+Possible reasons:
 - LLM service is temporarily unavailable
 - API keys or credentials need to be configured
 - Network connectivity issues
 - Service quota limits reached
 - Model-specific access restrictions
 
-**Next steps:**
+Next steps:
 - Check your LLM service configuration
 - Verify API keys and permissions
 - Try again in a few moments
@@ -691,23 +691,23 @@ async def generate_llm_response(request: LLMRequest):
             except Exception as mock_error:
                 print(f"⚠️ Mock response failed: {mock_error}, using informative message")
                 # Fallback to informative message
-                llm_response = f"""🚫 **LLM Access Unavailable**
+                llm_response = f"""🚫 LLM Access Unavailable
 
-**Model Selected:** {request.model}
-**Reasoning:** The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+Model Selected: {request.model}
+Reasoning: The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-**What this means:**
-- ✅ **Routing Decision:** Successfully completed
-- ✅ **Model Selection:** {request.model} was chosen as the optimal model
-- ❌ **LLM Response:** Cannot be generated at this time
+What this means:
+- ✅ Routing Decision: Successfully completed
+- ✅ Model Selection: {request.model} was chosen as the optimal model
+- ❌ LLM Response: Cannot be generated at this time
 
-**Possible reasons:**
+Possible reasons:
 - LLM service is temporarily unavailable
 - API keys or credentials need to be configured
 - Network connectivity issues
 - Service quota limits reached
 
-**Next steps:**
+Next steps:
 - Check your LLM service configuration
 - Verify API keys and permissions
 - Try again in a few moments
@@ -724,26 +724,26 @@ async def generate_llm_response(request: LLMRequest):
             except Exception as e:
                 print(f"⚠️ Real LLM call failed: {e}, using informative message")
                 # Fallback to informative message instead of mock
-                llm_response = f"""🚫 **LLM Access Unavailable**
+                llm_response = f"""🚫 LLM Access Unavailable
 
-**Model Selected:** {request.model}
-**Reasoning:** The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+Model Selected: {request.model}
+Reasoning: The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-**What this means:**
-- ✅ **AI Routing:** Successfully completed with DistilBERT
-- ✅ **Model Selection:** {request.model} was chosen as the optimal model
-- ❌ **LLM Response:** Cannot be generated at this time
+What this means:
+- ✅ AI Routing: Successfully completed with DistilBERT
+- ✅ Model Selection: {request.model} was chosen as the optimal model
+- ❌ LLM Response: Cannot be generated at this time
 
-**Error Details:** {str(e)}
+Error Details: {str(e)}
 
-**Possible reasons:**
+Possible reasons:
 - LLM service is temporarily unavailable
 - API keys or credentials need to be configured
 - Network connectivity issues
 - Service quota limits reached
 - Model-specific access restrictions
 
-**Next steps:**
+Next steps:
 - Check your LLM service configuration
 - Verify API keys and permissions
 - Try again in a few moments

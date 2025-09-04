@@ -382,10 +382,112 @@
         .response-content {
             padding: 20px;
             color: #2D3748;
-            line-height: 1.7;
-            font-size: 1rem;
-            white-space: pre-wrap;
+            line-height: 1.8;
+            font-size: 1.05rem;
             font-family: 'Inter', sans-serif;
+        }
+
+        .text-content {
+            max-width: none;
+        }
+
+        .text-content p {
+            margin: 0 0 16px 0;
+            line-height: 1.8;
+        }
+
+        .text-content h1, .text-content h2, .text-content h3, .text-content h4 {
+            color: #1A202C;
+            font-weight: 700;
+            margin: 24px 0 16px 0;
+            line-height: 1.3;
+        }
+
+        .text-content h1 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 8px;
+        }
+
+        .text-content h2 {
+            font-size: 1.3rem;
+            color: #2D3748;
+        }
+
+        .text-content h3 {
+            font-size: 1.2rem;
+            color: #4A5568;
+        }
+
+        .text-content h4 {
+            font-size: 1.1rem;
+            color: #4A5568;
+        }
+
+        .text-content strong {
+            font-weight: 700;
+            color: #1A202C;
+        }
+
+        .text-content em {
+            font-style: italic;
+            color: #4A5568;
+        }
+
+        .text-content ul, .text-content ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        .text-content li {
+            margin: 8px 0;
+            line-height: 1.7;
+        }
+
+        .text-content blockquote {
+            border-left: 4px solid #6B46C1;
+            background: #F7FAFC;
+            margin: 16px 0;
+            padding: 16px 20px;
+            font-style: italic;
+            color: #4A5568;
+        }
+
+        .inline-code {
+            background: #EDF2F7;
+            color: #2D3748;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .text-content .highlight-box {
+            background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+            border: 1px solid #BBF7D0;
+            border-left: 4px solid #10B981;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .text-content .warning-box {
+            background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+            border: 1px solid #FDE68A;
+            border-left: 4px solid #F59E0B;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .text-content .error-box {
+            background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%);
+            border: 1px solid #FECACA;
+            border-left: 4px solid #EF4444;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
         }
 
         .routing-decision {
@@ -431,16 +533,22 @@
         .code-block {
             background: #1A202C;
             border: 1px solid #2D3748;
-            border-radius: 8px;
-            margin: 16px 0;
+            border-radius: 12px;
+            margin: 20px 0;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .code-block:hover {
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
         }
 
         .code-block-header {
             background: linear-gradient(135deg, #2D3748 0%, #4A5568 100%);
             color: #E2E8F0;
-            padding: 12px 16px;
+            padding: 14px 20px;
             font-size: 0.85rem;
             font-weight: 600;
             display: flex;
@@ -450,41 +558,53 @@
         }
 
         .code-block-header .language-badge {
-            background: rgba(107, 70, 193, 0.8);
+            background: linear-gradient(135deg, #6B46C1 0%, #7C3AED 100%);
             color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
+            padding: 6px 12px;
+            border-radius: 16px;
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(107, 70, 193, 0.3);
         }
 
         .code-block pre {
             margin: 0;
-            padding: 16px;
+            padding: 20px;
             background: #1A202C;
             color: #E2E8F0;
             font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 0.9rem;
-            line-height: 1.6;
+            line-height: 1.7;
             overflow-x: auto;
             white-space: pre;
         }
 
         .copy-button {
-            background: rgba(107, 70, 193, 0.8);
-            color: white;
-            border: none;
-            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #E2E8F0;
             padding: 6px 12px;
-            font-size: 0.75rem;
-            font-weight: 500;
+            border-radius: 8px;
+            font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .copy-button.copied {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #10B981;
         }
 
         .copy-button:hover {
@@ -1521,25 +1641,125 @@
             
             paragraphs.forEach(paragraph => {
                 if (paragraph.trim()) {
-                    // Handle different text patterns
-                    let formattedParagraph = escapeHtml(paragraph.trim());
+                    let formattedParagraph = paragraph.trim();
+                    
+                    // Handle special boxes first (before escaping HTML)
+                    if (formattedParagraph.startsWith('✅') || formattedParagraph.includes('✅')) {
+                        formattedParagraph = `<div class="highlight-box">${escapeHtml(formattedParagraph)}</div>`;
+                        formattedText += formattedParagraph;
+                        return;
+                    }
+                    
+                    if (formattedParagraph.startsWith('⚠️') || formattedParagraph.startsWith('🚫')) {
+                        formattedParagraph = `<div class="warning-box">${escapeHtml(formattedParagraph)}</div>`;
+                        formattedText += formattedParagraph;
+                        return;
+                    }
+                    
+                    if (formattedParagraph.startsWith('❌') || formattedParagraph.startsWith('🔥')) {
+                        formattedParagraph = `<div class="error-box">${escapeHtml(formattedParagraph)}</div>`;
+                        formattedText += formattedParagraph;
+                        return;
+                    }
+                    
+                    // Escape HTML for regular content
+                    formattedParagraph = escapeHtml(formattedParagraph);
+                    
+                    // Handle headers (markdown-style)
+                    if (formattedParagraph.startsWith('# ')) {
+                        formattedParagraph = '<h1>' + formattedParagraph.substring(2) + '</h1>';
+                        formattedText += formattedParagraph;
+                        return;
+                    } else if (formattedParagraph.startsWith('## ')) {
+                        formattedParagraph = '<h2>' + formattedParagraph.substring(3) + '</h2>';
+                        formattedText += formattedParagraph;
+                        return;
+                    } else if (formattedParagraph.startsWith('### ')) {
+                        formattedParagraph = '<h3>' + formattedParagraph.substring(4) + '</h3>';
+                        formattedText += formattedParagraph;
+                        return;
+                    } else if (formattedParagraph.startsWith('#### ')) {
+                        formattedParagraph = '<h4>' + formattedParagraph.substring(5) + '</h4>';
+                        formattedText += formattedParagraph;
+                        return;
+                    }
+                    
+                    // Handle bold text (**text** or __text__)
+                    formattedParagraph = formattedParagraph.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                    formattedParagraph = formattedParagraph.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+                    
+                    // Handle italic text (*text* or _text_)
+                    formattedParagraph = formattedParagraph.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    formattedParagraph = formattedParagraph.replace(/_([^_]+)_/g, '<em>$1</em>');
                     
                     // Highlight inline code (text between backticks)
                     formattedParagraph = formattedParagraph.replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>');
                     
-                    // Handle numbered lists
-                    formattedParagraph = formattedParagraph.replace(/^(\d+\.\s+)(.+)$/gm, '<li>$1$2</li>');
-                    
-                    // Handle bullet points
-                    formattedParagraph = formattedParagraph.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
-                    
-                    // Wrap in paragraph tags
-                    if (formattedParagraph.includes('<li>')) {
-                        formattedParagraph = '<ul>' + formattedParagraph + '</ul>';
-                    } else {
-                        formattedParagraph = '<p>' + formattedParagraph + '</p>';
+                    // Handle blockquotes
+                    if (formattedParagraph.startsWith('&gt; ')) {
+                        formattedParagraph = '<blockquote>' + formattedParagraph.substring(5) + '</blockquote>';
+                        formattedText += formattedParagraph;
+                        return;
                     }
                     
+                    // Handle numbered lists
+                    if (/^\d+\.\s/.test(formattedParagraph)) {
+                        const listItems = formattedParagraph.split('\n').map(line => {
+                            const match = line.match(/^(\d+\.\s+)(.+)$/);
+                            return match ? `<li>${match[2]}</li>` : '';
+                        }).filter(item => item).join('');
+                        formattedParagraph = '<ol>' + listItems + '</ol>';
+                        formattedText += formattedParagraph;
+                        return;
+                    }
+                    
+                    // Handle bullet points
+                    if (/^[-*•]\s/.test(formattedParagraph)) {
+                        const listItems = formattedParagraph.split('\n').map(line => {
+                            const match = line.match(/^[-*•]\s+(.+)$/);
+                            return match ? `<li>${match[1]}</li>` : '';
+                        }).filter(item => item).join('');
+                        formattedParagraph = '<ul>' + listItems + '</ul>';
+                        formattedText += formattedParagraph;
+                        return;
+                    }
+                    
+                    // Handle multi-line lists within a paragraph
+                    if (formattedParagraph.includes('\n- ') || formattedParagraph.includes('\n* ') || formattedParagraph.includes('\n• ')) {
+                        const lines = formattedParagraph.split('\n');
+                        let result = '';
+                        let inList = false;
+                        let listItems = [];
+                        
+                        lines.forEach(line => {
+                            if (/^[-*•]\s/.test(line)) {
+                                if (!inList) {
+                                    inList = true;
+                                    listItems = [];
+                                }
+                                listItems.push('<li>' + line.replace(/^[-*•]\s+/, '') + '</li>');
+                            } else {
+                                if (inList) {
+                                    result += '<ul>' + listItems.join('') + '</ul>';
+                                    inList = false;
+                                    listItems = [];
+                                }
+                                if (line.trim()) {
+                                    result += '<p>' + line + '</p>';
+                                }
+                            }
+                        });
+                        
+                        if (inList) {
+                            result += '<ul>' + listItems.join('') + '</ul>';
+                        }
+                        
+                        formattedText += result;
+                        return;
+                    }
+                    
+                    // Regular paragraph
+                    formattedParagraph = '<p>' + formattedParagraph + '</p>';
                     formattedText += formattedParagraph;
                 }
             });

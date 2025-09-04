@@ -94,14 +94,16 @@ class DistilBERTFineTuner:
                 
                 # Get prediction and confidence
                 probabilities = torch.softmax(logits, dim=-1)
-                predicted_class = torch.argmax(probabilities, dim=-1).item()
-                confidence = torch.max(probabilities).item()
+                predicted_class_tensor = torch.argmax(probabilities, dim=-1)
+                confidence_tensor = torch.max(probabilities)
                 
-                # Convert to label - more robust approach
+                # Safely extract scalar values
+                predicted_class = predicted_class_tensor.item()
+                confidence = confidence_tensor.item()
+                
+                # Convert to label - predicted_class should already be a scalar integer
                 try:
-                    # Ensure predicted_class is a scalar integer
-                    if hasattr(predicted_class, 'item'):
-                        predicted_class = predicted_class.item()
+                    # Validate predicted_class is a valid integer
                     predicted_class = int(predicted_class)
                     
                     # Use label encoder to get the actual label
@@ -114,10 +116,14 @@ class DistilBERTFineTuner:
                     # Fallback to index-based mapping
                     labels = ['o3', 'o4-mini', 'gpt-4o-mini']  # Updated to match current models
                     try:
-                        predicted_class = int(predicted_class) if hasattr(predicted_class, 'item') else int(predicted_class)
-                        predicted_label = labels[predicted_class] if 0 <= predicted_class < len(labels) else 'o4-mini'
-                    except:
+                        predicted_class = int(predicted_class)
+                        if 0 <= predicted_class < len(labels):
+                            predicted_label = labels[predicted_class]
+                        else:
+                            predicted_label = 'o4-mini'  # Default fallback
+                    except Exception as fallback_error:
                         predicted_label = 'o4-mini'  # Ultimate fallback
+                        print(f"⚠️ Fallback conversion failed: {fallback_error}")
                     print(f"⚠️ Label encoder failed, using fallback: {e}")
                     print(f"   Predicted class: {predicted_class}, Fallback label: {predicted_label}")
                 
