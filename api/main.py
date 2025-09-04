@@ -60,8 +60,8 @@ app.add_middleware(
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Initialize the fine-tuned model
-model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'distilbert_llm_router')
+# Initialize the fine-tuned model - Absolute path for Azure App Service
+model_path = os.path.join(os.getcwd(), 'models', 'distilbert_llm_router')
 fine_tuner = None
 
 # Metrics tracking
