@@ -27,11 +27,22 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 # Import model classes with fallback
 try:
+    # Try full training version first (local development)
     from distilbert_finetuner import DistilBERTFineTuner
     print("✅ Full DistilBERTFineTuner loaded (training environment)")
 except ImportError:
-        print("⚠️ No DistilBERTFineTuner available - falling back to rule-based routing")
-        DistilBERTFineTuner = None
+    try:
+        # Try lightweight inference version (Azure deployment)
+        from distilbert_inference import DistilBERTFineTuner
+        print("✅ Lightweight DistilBERTFineTuner loaded (deployment environment)")
+    except ImportError:
+        try:
+            # Try src path (fallback)
+            from src.distilbert_inference import DistilBERTFineTuner
+            print("✅ Lightweight DistilBERTFineTuner loaded (src path)")
+        except ImportError:
+            print("⚠️ No DistilBERTFineTuner available - falling back to rule-based routing")
+            DistilBERTFineTuner = None
 
 from cost_tracker import cost_tracker
 from mock_llm_responses import mock_llm
