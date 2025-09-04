@@ -1,22 +1,32 @@
 """
 DistilBERT Inference Only - Lightweight version for deployment
+
+This module implements inference-only functionality for DistilBERT-based
+LLM routing classification, optimized for production deployment.
 """
 
+import json
 import os
 import pickle
+import warnings
 from typing import List, Tuple
 
 import numpy as np
 import torch
+from sklearn.preprocessing import LabelEncoder
 from transformers import (DistilBertForSequenceClassification,
                           DistilBertTokenizer)
 
+warnings.filterwarnings('ignore')
+
 
 class DistilBERTFineTuner:
-    """Lightweight DistilBERT class for inference only"""
+    """Lightweight DistilBERT class for inference only - production optimized"""
     
-    def __init__(self, device: str = None):
-        # Detect best available device
+    def __init__(self, model_name: str = 'distilbert-base-uncased', device: str = None):
+        self.model_name = model_name
+        
+        # Detect best available device for optimal performance
         if device:
             self.device = device
         elif torch.backends.mps.is_available():
@@ -26,40 +36,36 @@ class DistilBERTFineTuner:
         else:
             self.device = 'cpu'  # Fallback to CPU
             
-        self.model = None
         self.tokenizer = None
         self.label_encoder = None
+        self.model = None
+        self.label_names = None
+        self.num_labels = None
         
-        print(f"🤖 Using device: {self.device}")
+        print(f"🤖 DistilBERT initialized on device: {self.device}")
     
     def load_model(self, load_path: str):
-        """Load a fine-tuned model"""
+        """Load a fine-tuned model - using exact working logic from distilbert_finetuner.py"""
         try:
+            # Load model and tokenizer - EXACT same as working version
             self.model = DistilBertForSequenceClassification.from_pretrained(load_path)
             self.tokenizer = DistilBertTokenizer.from_pretrained(load_path)
             self.model.to(self.device)
             
-            # Load label encoder
-            label_encoder_path = os.path.join(load_path, 'label_encoder.pkl')
-            if os.path.exists(label_encoder_path):
-                with open(label_encoder_path, 'rb') as f:
-                    self.label_encoder = pickle.load(f)
+            # Load label encoder - EXACT same as working version
+            import joblib
+            self.label_encoder = joblib.load(os.path.join(load_path, 'label_encoder.pkl'))
+            
+            # Set label-related attributes
+            if hasattr(self.label_encoder, 'classes_'):
+                self.label_names = self.label_encoder.classes_
+                self.num_labels = len(self.label_names)
             else:
-                # Try joblib format (backup)
-                try:
-                    import joblib
-                    self.label_encoder = joblib.load(label_encoder_path)
-                except:
-                    # Fallback label encoder if file is missing
-                    print("⚠️ Using fallback label encoder")
-                    class FallbackEncoder:
-                        def __init__(self):
-                            self.classes_ = ['o3', 'o4-mini', 'gpt-4o-mini']
-                        def inverse_transform(self, indices):
-                            return [self.classes_[i] for i in indices]
-                    self.label_encoder = FallbackEncoder()
+                self.label_names = ['o3', 'o4-mini', 'gpt-4o-mini']
+                self.num_labels = 3
             
             print(f"✅ Model loaded successfully from {load_path}")
+            print(f"📊 Label mapping: {dict(zip(self.label_names, range(self.num_labels)))}")
             return True
             
         except Exception as e:
@@ -67,7 +73,7 @@ class DistilBERTFineTuner:
             return False
     
     def predict(self, prompts: List[str]) -> Tuple[List[str], List[float]]:
-        """Make predictions on new prompts"""
+        """Make predictions on new prompts - using exact working logic from distilbert_finetuner.py"""
         if not self.model or not self.tokenizer or not self.label_encoder:
             raise ValueError("Model not loaded. Call load_model() first.")
         
@@ -93,89 +99,81 @@ class DistilBERTFineTuner:
                 outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
                 logits = outputs.logits
                 
-                # Get prediction and confidence
+                # Get prediction and confidence - EXACT same logic as working version
                 probabilities = torch.softmax(logits, dim=-1)
-                predicted_class_tensor = torch.argmax(probabilities, dim=-1)
-                confidence_tensor = torch.max(probabilities)
+                predicted_class = torch.argmax(probabilities, dim=-1).item()
+                confidence = torch.max(probabilities).item()
                 
-                # Safely extract scalar values with comprehensive validation
-                try:
-                    # Convert tensors to CPU first to avoid device issues
-                    predicted_class_tensor = predicted_class_tensor.cpu()
-                    confidence_tensor = confidence_tensor.cpu()
-                    
-                    # Ensure we're working with scalar tensors - use safer dimension checking
-                    if predicted_class_tensor.numel() > 1:
-                        predicted_class_tensor = predicted_class_tensor.squeeze()
-                    if confidence_tensor.numel() > 1:
-                        confidence_tensor = confidence_tensor.squeeze()
-                    
-                    # Final safety check - ensure tensors are 0-dimensional (scalars)
-                    if predicted_class_tensor.dim() > 0:
-                        predicted_class_tensor = predicted_class_tensor.flatten()[0]
-                    if confidence_tensor.dim() > 0:
-                        confidence_tensor = confidence_tensor.flatten()[0]
-                    
-                    # Extract scalar values safely with type conversion
-                    predicted_class_raw = predicted_class_tensor.item()
-                    confidence_raw = confidence_tensor.item()
-                    
-                    # Convert to proper types with validation
-                    predicted_class = int(predicted_class_raw)
-                    confidence = float(confidence_raw)
-                    
-                    # Validate predicted_class is within expected range
-                    if predicted_class < 0:
-                        predicted_class = 0
-                    elif predicted_class > 2:  # We have 3 classes (0, 1, 2)
-                        predicted_class = 2
-                        
-                    # Validate confidence is within expected range
-                    if confidence < 0.0:
-                        confidence = 0.0
-                    elif confidence > 1.0:
-                        confidence = 1.0
-                        
-                except Exception as tensor_error:
-                    print(f"⚠️ Tensor conversion error: {tensor_error}")
-                    print(f"⚠️ Error type: {type(tensor_error).__name__}")
-                    # Fallback values
-                    predicted_class = 1  # Default to middle class (o4-mini)
-                    confidence = 0.5
-                
-                # Convert to label using safer approach
-                try:
-                    # Use label encoder to get the actual label
-                    if (self.label_encoder and 
-                        hasattr(self.label_encoder, 'inverse_transform') and 
-                        hasattr(self.label_encoder, 'classes_')):
-                        
-                        # Ensure predicted_class is within valid range for label encoder
-                        num_classes = len(self.label_encoder.classes_)
-                        if predicted_class >= num_classes:
-                            predicted_class = num_classes - 1
-                        elif predicted_class < 0:
-                            predicted_class = 0
-                            
-                        predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
-                    else:
-                        raise ValueError("Label encoder not properly loaded")
-                        
-                except Exception as e:
-                    # Fallback to index-based mapping
-                    labels = ['o3', 'o4-mini', 'gpt-4o-mini']  # Updated to match current models
-                    try:
-                        if 0 <= predicted_class < len(labels):
-                            predicted_label = labels[predicted_class]
-                        else:
-                            predicted_label = 'o4-mini'  # Default fallback
-                    except Exception as fallback_error:
-                        predicted_label = 'o4-mini'  # Ultimate fallback
-                        print(f"⚠️ Fallback conversion failed: {fallback_error}")
-                    print(f"⚠️ Label encoder failed, using fallback: {e}")
-                    print(f"   Predicted class: {predicted_class}, Fallback label: {predicted_label}")
+                predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
                 
                 predictions.append(predicted_label)
                 confidences.append(confidence)
         
         return predictions, confidences
+
+
+if __name__ == "__main__":
+    print("🧪 Testing DistilBERT Inference Module")
+    
+    # Initialize the model
+    fine_tuner = DistilBERTFineTuner()
+    
+    # Test prompts covering different complexity levels
+    test_prompts = [
+        "What is the weather like today?",  # Simple question - should route to gpt-4o-mini
+        "Write a complex research paper about quantum computing with detailed analysis",  # Complex task - should route to o3
+        "Hello, how are you?",  # Simple greeting - should route to gpt-4o-mini
+        "Create a comprehensive business strategy for a tech startup including market analysis, financial projections, and competitive landscape",  # Complex business task - should route to o3
+        "What's 2+2?",  # Simple math - should route to gpt-4o-mini
+        "Develop a machine learning model to predict stock prices using deep learning techniques and explain the mathematical foundations",  # Complex ML task - should route to o3
+        "How do I make a sandwich?",  # Simple instruction - should route to gpt-4o-mini
+        "Analyze the philosophical implications of artificial general intelligence on human society and ethics",  # Complex philosophical question - should route to o3
+    ]
+    
+    print(f"🤖 Device: {fine_tuner.device}")
+    print(f"📝 Testing with {len(test_prompts)} prompts")
+    
+    # Try to load the model if it exists
+    model_path = "../models/distilbert_llm_router"
+    if os.path.exists(model_path):
+        print(f"📁 Loading model from: {model_path}")
+        success = fine_tuner.load_model(model_path)
+        
+        if success:
+            print("\n🚀 Running predictions on test prompts...")
+            print("=" * 80)
+            
+            try:
+                predictions, confidences = fine_tuner.predict(test_prompts)
+                
+                for i, (prompt, prediction, confidence) in enumerate(zip(test_prompts, predictions, confidences), 1):
+                    print(f"\n📝 Prompt {i}: {prompt[:60]}{'...' if len(prompt) > 60 else ''}")
+                    print(f"🎯 Predicted Model: {prediction}")
+                    print(f"📊 Confidence: {confidence:.2%}")
+                    print("-" * 40)
+                
+                print(f"\n✅ Successfully processed {len(predictions)} predictions!")
+                
+                # Summary statistics
+                model_counts = {}
+                for pred in predictions:
+                    model_counts[pred] = model_counts.get(pred, 0) + 1
+                
+                print(f"\n📈 Prediction Summary:")
+                for model, count in model_counts.items():
+                    print(f"   {model}: {count} predictions")
+                
+                avg_confidence = sum(confidences) / len(confidences)
+                print(f"   Average Confidence: {avg_confidence:.2%}")
+                
+            except Exception as e:
+                print(f"❌ Prediction failed: {e}")
+                print("💡 This might be expected if the model files are not properly trained")
+        else:
+            print("❌ Failed to load model")
+    else:
+        print(f"⚠️ Model path not found: {model_path}")
+        print("💡 Make sure you have trained the model first using the training script")
+    
+    print("\n✅ DistilBERT Inference module test completed!")
+    print("💡 To use in production: fine_tuner.load_model('path/to/model') then fine_tuner.predict(prompts)")

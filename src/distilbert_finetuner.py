@@ -8,7 +8,7 @@ using prompt classification.
 import json
 import os
 import warnings
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,8 +16,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 import torch.nn as nn
-from sklearn.metrics import (accuracy_score, classification_report,
-                             confusion_matrix, f1_score)
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from torch.optim import AdamW
@@ -493,28 +492,15 @@ class DistilBERTFineTuner:
         plt.show()
 
 if __name__ == "__main__":
-    # Example usage
     fine_tuner = DistilBERTFineTuner()
-    
-    # Load data
     df = pd.read_csv("data/llm_routing_train.csv")
-    
-    # Prepare data
     train_prompts, val_prompts, train_labels, val_labels = fine_tuner.prepare_data(df)
-    
-    # Create data loaders
     train_loader, val_loader = fine_tuner.create_data_loaders(
         train_prompts, val_prompts, train_labels, val_labels
     )
-    
-    # Initialize and train model
     fine_tuner.initialize_model()
     history = fine_tuner.train(train_loader, val_loader, epochs=3)
-    
-    # Save model
     fine_tuner.save_model("models/distilbert_llm_router")
-    
-    # Plot results
     fine_tuner.plot_training_history()
-    
+    cv_results = fine_tuner.cross_validate(df, k_folds=5)
     print("Fine-tuning completed!")
