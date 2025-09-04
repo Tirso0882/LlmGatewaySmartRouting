@@ -1,13 +1,12 @@
 """
 Cost Tracker for LLM Gateway
-Provides comprehensive cost transparency for token usage across all models
+Provides cost tracking for token usage across all models
 """
 
-import json
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 @dataclass

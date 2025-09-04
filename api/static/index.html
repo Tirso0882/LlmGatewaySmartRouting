@@ -1443,7 +1443,6 @@
                 const llmTime = Date.now() - llmStartTime;
                 const totalTime = decisionTime + llmTime;
                 
-                // Display LLM response
                 displayLLMResponse(llmData, llmTime, decisionData);
                 
                 updatePerformanceChart(totalTime);
@@ -1879,7 +1878,6 @@
             loadCosts();
         }
 
-        // New function to display routing decision immediately
         function displayRoutingDecision(data, responseTime) {
             const resultsDiv = document.getElementById('results');
             
@@ -1924,19 +1922,15 @@
             resultsDiv.innerHTML = resultHtml + resultsDiv.innerHTML;
         }
 
-        // New function to update with LLM response
         function displayLLMResponse(llmData, llmTime, decisionData) {
             const resultsDiv = document.getElementById('results');
             const routingDecisionItem = resultsDiv.querySelector('.routing-decision');
             
             if (routingDecisionItem) {
-                // Check if this is a demo mode response (LLM unavailable)
                 const isDemoMode = llmData.llm_response.includes('🚫 **LLM Access Unavailable**');
                 
-                // Update the existing routing decision item with LLM response
                 const formattedResponse = formatLLMResponse(llmData.llm_response);
                 
-                // Update response type badge
                 const responseTypeBadge = routingDecisionItem.querySelector('.response-type-badge');
                 if (responseTypeBadge) {
                     if (isDemoMode) {
@@ -1996,7 +1990,6 @@
                                 ${formattedResponse}
                             </div>
                         `;
-                        // Add demo mode styling
                         routingDecisionItem.classList.add('demo-mode');
                     } else {
                         llmResponseDiv.innerHTML = `
@@ -2011,10 +2004,8 @@
                     }
                 }
                 
-                // Remove the routing-decision class since it's now complete
                 routingDecisionItem.classList.remove('routing-decision');
                 
-                // Update costs after displaying result
                 loadCosts();
             }
         }
@@ -2099,7 +2090,6 @@
             
             resultsDiv.innerHTML = batchHtml + resultsDiv.innerHTML;
             
-            // Update costs after displaying batch results
             loadCosts();
         }
 
@@ -2130,12 +2120,12 @@
                 const metrics = await response.json();
                 console.log('📊 Metrics loaded:', metrics);
                 
-                // Update the UI with real backend metrics
+                // Update the UI with latest backend metrics
                 document.getElementById('totalRequests').textContent = metrics.total_requests;
                 document.getElementById('avgResponseTime').textContent = Math.round(metrics.avg_response_time_ms) + 'ms';
                 document.getElementById('successRate').textContent = Math.round(metrics.success_rate) + '%';
                 
-                // Update local variables for chart
+                // Update local variables for chart data
                 requestCount = metrics.total_requests;
                 totalResponseTime = metrics.avg_response_time_ms * metrics.total_requests;
                 
@@ -2143,7 +2133,7 @@
                 
             } catch (error) {
                 console.error('❌ Failed to load metrics:', error);
-                // Fallback to local metrics if backend fails
+                // Fallback to local metrics if backend fails to load
                 document.getElementById('totalRequests').textContent = requestCount;
                 if (requestCount > 0) {
                     const avgTime = Math.round(totalResponseTime / requestCount);
@@ -2208,13 +2198,10 @@
                 const isDistilBERT = this.checked;
                 const mode = isDistilBERT ? 'distilbert' : 'rule-based';
                 
-                // Save preference
                 localStorage.setItem('routingMode', mode);
                 
-                // Update display
                 updateModeDisplay(isDistilBERT);
                 
-                // Show confirmation
                 showSuccess(`Switched to ${mode} routing mode`);
             });
         }
