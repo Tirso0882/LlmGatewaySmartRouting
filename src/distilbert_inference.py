@@ -6,6 +6,7 @@ import os
 import pickle
 from typing import List, Tuple
 
+import numpy as np
 import torch
 from transformers import (DistilBertForSequenceClassification,
                           DistilBertTokenizer)
@@ -97,17 +98,65 @@ class DistilBERTFineTuner:
                 predicted_class_tensor = torch.argmax(probabilities, dim=-1)
                 confidence_tensor = torch.max(probabilities)
                 
-                # Safely extract scalar values
-                predicted_class = predicted_class_tensor.item()
-                confidence = confidence_tensor.item()
-                
-                # Convert to label - predicted_class should already be a scalar integer
+                # Safely extract scalar values with comprehensive validation
                 try:
-                    # Validate predicted_class is a valid integer
-                    predicted_class = int(predicted_class)
+                    # Convert tensors to CPU first to avoid device issues
+                    predicted_class_tensor = predicted_class_tensor.cpu()
+                    confidence_tensor = confidence_tensor.cpu()
                     
+                    # Ensure we're working with scalar tensors - use safer dimension checking
+                    if predicted_class_tensor.numel() > 1:
+                        predicted_class_tensor = predicted_class_tensor.squeeze()
+                    if confidence_tensor.numel() > 1:
+                        confidence_tensor = confidence_tensor.squeeze()
+                    
+                    # Final safety check - ensure tensors are 0-dimensional (scalars)
+                    if predicted_class_tensor.dim() > 0:
+                        predicted_class_tensor = predicted_class_tensor.flatten()[0]
+                    if confidence_tensor.dim() > 0:
+                        confidence_tensor = confidence_tensor.flatten()[0]
+                    
+                    # Extract scalar values safely with type conversion
+                    predicted_class_raw = predicted_class_tensor.item()
+                    confidence_raw = confidence_tensor.item()
+                    
+                    # Convert to proper types with validation
+                    predicted_class = int(predicted_class_raw)
+                    confidence = float(confidence_raw)
+                    
+                    # Validate predicted_class is within expected range
+                    if predicted_class < 0:
+                        predicted_class = 0
+                    elif predicted_class > 2:  # We have 3 classes (0, 1, 2)
+                        predicted_class = 2
+                        
+                    # Validate confidence is within expected range
+                    if confidence < 0.0:
+                        confidence = 0.0
+                    elif confidence > 1.0:
+                        confidence = 1.0
+                        
+                except Exception as tensor_error:
+                    print(f"⚠️ Tensor conversion error: {tensor_error}")
+                    print(f"⚠️ Error type: {type(tensor_error).__name__}")
+                    # Fallback values
+                    predicted_class = 1  # Default to middle class (o4-mini)
+                    confidence = 0.5
+                
+                # Convert to label using safer approach
+                try:
                     # Use label encoder to get the actual label
-                    if self.label_encoder and hasattr(self.label_encoder, 'inverse_transform'):
+                    if (self.label_encoder and 
+                        hasattr(self.label_encoder, 'inverse_transform') and 
+                        hasattr(self.label_encoder, 'classes_')):
+                        
+                        # Ensure predicted_class is within valid range for label encoder
+                        num_classes = len(self.label_encoder.classes_)
+                        if predicted_class >= num_classes:
+                            predicted_class = num_classes - 1
+                        elif predicted_class < 0:
+                            predicted_class = 0
+                            
                         predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
                     else:
                         raise ValueError("Label encoder not properly loaded")
@@ -116,7 +165,6 @@ class DistilBERTFineTuner:
                     # Fallback to index-based mapping
                     labels = ['o3', 'o4-mini', 'gpt-4o-mini']  # Updated to match current models
                     try:
-                        predicted_class = int(predicted_class)
                         if 0 <= predicted_class < len(labels):
                             predicted_label = labels[predicted_class]
                         else:

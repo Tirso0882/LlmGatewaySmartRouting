@@ -326,9 +326,15 @@ async def startup_event():
             # Test the model (optional - if it fails, we'll still use the model)
             try:
                 test_predictions, test_confidences = fine_tuner.predict(["test prompt"])
-                print(f"✅ Model test passed: {test_predictions[0]} (confidence: {test_confidences[0]:.2%})")
+                if test_predictions and len(test_predictions) > 0 and test_confidences and len(test_confidences) > 0:
+                    print(f"✅ Model test passed: {test_predictions[0]} (confidence: {test_confidences[0]:.2%})")
+                else:
+                    print("⚠️ Model test returned empty results")
             except Exception as test_error:
                 print(f"⚠️ Model test failed: {test_error}")
+                print(f"⚠️ Error type: {type(test_error).__name__}")
+                import traceback
+                print(f"⚠️ Stack trace: {traceback.format_exc()}")
                 print("⚠️ Model will still be available for use")
             
             metrics_tracker.mark_startup_test_complete()
