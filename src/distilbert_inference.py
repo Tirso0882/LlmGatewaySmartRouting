@@ -99,11 +99,20 @@ class DistilBERTFineTuner:
                 
                 # Convert to label
                 try:
+                    # Ensure predicted_class is a scalar integer
+                    if hasattr(predicted_class, 'item'):
+                        predicted_class = predicted_class.item()
+                    predicted_class = int(predicted_class)
+                    
+                    # Use label encoder to get the actual label
                     predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
-                except:
+                except Exception as e:
                     # Fallback to index-based mapping
-                    labels = ['gpt-4', 'gpt-3.5-turbo', 'gpt-4o-mini']
-                    predicted_label = labels[predicted_class] if predicted_class < len(labels) else 'gpt-4'
+                    labels = ['o3', 'o4-mini', 'gpt-4o-mini']  # Updated to match current models
+                    predicted_class = int(predicted_class) if hasattr(predicted_class, 'item') else predicted_class
+                    predicted_label = labels[predicted_class] if 0 <= predicted_class < len(labels) else 'o4-mini'
+                    print(f"⚠️ Label encoder failed, using fallback: {e}")
+                    print(f"   Predicted class: {predicted_class}, Fallback label: {predicted_label}")
                 
                 predictions.append(predicted_label)
                 confidences.append(confidence)
