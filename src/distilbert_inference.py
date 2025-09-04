@@ -97,7 +97,7 @@ class DistilBERTFineTuner:
                 predicted_class = torch.argmax(probabilities, dim=-1).item()
                 confidence = torch.max(probabilities).item()
                 
-                # Convert to label
+                # Convert to label - more robust approach
                 try:
                     # Ensure predicted_class is a scalar integer
                     if hasattr(predicted_class, 'item'):
@@ -105,12 +105,19 @@ class DistilBERTFineTuner:
                     predicted_class = int(predicted_class)
                     
                     # Use label encoder to get the actual label
-                    predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
+                    if self.label_encoder and hasattr(self.label_encoder, 'inverse_transform'):
+                        predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
+                    else:
+                        raise ValueError("Label encoder not properly loaded")
+                        
                 except Exception as e:
                     # Fallback to index-based mapping
                     labels = ['o3', 'o4-mini', 'gpt-4o-mini']  # Updated to match current models
-                    predicted_class = int(predicted_class) if hasattr(predicted_class, 'item') else predicted_class
-                    predicted_label = labels[predicted_class] if 0 <= predicted_class < len(labels) else 'o4-mini'
+                    try:
+                        predicted_class = int(predicted_class) if hasattr(predicted_class, 'item') else int(predicted_class)
+                        predicted_label = labels[predicted_class] if 0 <= predicted_class < len(labels) else 'o4-mini'
+                    except:
+                        predicted_label = 'o4-mini'  # Ultimate fallback
                     print(f"⚠️ Label encoder failed, using fallback: {e}")
                     print(f"   Predicted class: {predicted_class}, Fallback label: {predicted_label}")
                 
