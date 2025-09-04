@@ -53,7 +53,7 @@ class DistilBERTFineTuner:
                     print("⚠️ Using fallback label encoder")
                     class FallbackEncoder:
                         def __init__(self):
-                            self.classes_ = ['gpt-4', 'gpt-3.5-turbo', 'gpt-4o-mini']
+                            self.classes_ = ['o3', 'o4-mini', 'gpt-4o-mini']
                         def inverse_transform(self, indices):
                             return [self.classes_[i] for i in indices]
                     self.label_encoder = FallbackEncoder()

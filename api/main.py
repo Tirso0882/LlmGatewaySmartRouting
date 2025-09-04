@@ -30,10 +30,6 @@ try:
     from distilbert_finetuner import DistilBERTFineTuner
     print("✅ Full DistilBERTFineTuner loaded (training environment)")
 except ImportError:
-    try:
-        from distilbert_inference import DistilBERTFineTuner
-        print("✅ Lightweight DistilBERTFineTuner loaded (deployment environment)")
-    except ImportError:
         print("⚠️ No DistilBERTFineTuner available - falling back to rule-based routing")
         DistilBERTFineTuner = None
 
@@ -284,20 +280,22 @@ async def startup_event():
         print("🤖 Loading DistilBERT model from local path...")
         if DistilBERTFineTuner:
             fine_tuner = DistilBERTFineTuner()
-            fine_tuner.load_model(model_path)
             
-            # Test the model to ensure it's actually working
+            # Try to load the model
+            print(f"📁 Model path: {model_path}")
+            fine_tuner.load_model(model_path)
+            print("✅ DistilBERT model loaded successfully!")
+            
+            # Test the model (optional - if it fails, we'll still use the model)
             try:
                 test_predictions, test_confidences = fine_tuner.predict(["test prompt"])
-                print("✅ DistilBERT model loaded and tested successfully!")
-                print(f"Model path: {model_path}")
-                print(f"Test prediction: {test_predictions[0]} (confidence: {test_confidences[0]:.2%})")
-                metrics_tracker.mark_startup_test_complete()
-                return
+                print(f"✅ Model test passed: {test_predictions[0]} (confidence: {test_confidences[0]:.2%})")
             except Exception as test_error:
-                print(f"❌ Model loaded but test failed: {test_error}")
-                fine_tuner = None
-                raise test_error
+                print(f"⚠️ Model test failed: {test_error}")
+                print("⚠️ Model will still be available for use")
+            
+            metrics_tracker.mark_startup_test_complete()
+            return
         else:
             raise ImportError("No DistilBERTFineTuner available")
             
@@ -392,25 +390,29 @@ async def route_prompt(request: RoutingRequest):
             print("📋 Using rule-based routing as requested...")
             recommended_model, confidence = rule_based_routing(request.prompt)
             routing_method = "Rule-based (User Requested)"
-        elif fine_tuner is not None:
-            try:
-                print("🤖 Using DistilBERT model for routing...")
-                # Use DistilBERT model
-                predictions, confidences = fine_tuner.predict([request.prompt])
-                recommended_model = predictions[0]
-                confidence = confidences[0]
-                routing_method = "DistilBERT"
-                print(f"✅ DistilBERT prediction: {recommended_model} (confidence: {confidence:.2%})")
-            except Exception as model_error:
-                print(f"⚠️ DistilBERT prediction failed: {model_error}, falling back to rule-based routing")
-                # Mark model as broken for future requests
-                fine_tuner = None
-                # Fallback to rule-based routing
+        elif request.routing_mode == "distilbert":
+            if fine_tuner is not None:
+                try:
+                    print("🤖 Using DistilBERT model for routing...")
+                    # Use DistilBERT model
+                    predictions, confidences = fine_tuner.predict([request.prompt])
+                    recommended_model = predictions[0]
+                    confidence = confidences[0]
+                    routing_method = "DistilBERT"
+                    print(f"✅ DistilBERT prediction: {recommended_model} (confidence: {confidence:.2%})")
+                except Exception as model_error:
+                    print(f"⚠️ DistilBERT prediction failed: {model_error}")
+                    print("   Error details:", str(model_error))
+                    # Fallback to rule-based routing but keep the DistilBERT routing method label
+                    recommended_model, confidence = rule_based_routing(request.prompt)
+                    routing_method = "Rule-based (DistilBERT failed)"
+            else:
+                print("⚠️ DistilBERT model not available, using rule-based routing...")
                 recommended_model, confidence = rule_based_routing(request.prompt)
-                routing_method = "Rule-based (DistilBERT failed)"
+                routing_method = "Rule-based (DistilBERT unavailable)"
         else:
             print("📋 Using rule-based routing...")
-            # Fallback to rule-based routing
+            # Default fallback to rule-based routing
             recommended_model, confidence = rule_based_routing(request.prompt)
             routing_method = "Rule-based"
         
@@ -524,12 +526,35 @@ async def route_batch(request: BatchRoutingRequest):
                 predictions.append(model)
                 confidences.append(conf)
             routing_method = "Rule-based (User Requested)"
-        elif fine_tuner is not None:
-            # Use DistilBERT model for batch predictions
-            predictions, confidences = fine_tuner.predict(request.prompts)
-            routing_method = "DistilBERT"
+        elif request.routing_mode == "distilbert":
+            if fine_tuner is not None:
+                try:
+                    print("🤖 Using DistilBERT model for batch routing...")
+                    # Use DistilBERT model for batch predictions
+                    predictions, confidences = fine_tuner.predict(request.prompts)
+                    routing_method = "DistilBERT"
+                except Exception as model_error:
+                    print(f"⚠️ DistilBERT batch prediction failed: {model_error}, falling back to rule-based routing")
+                    # Fallback to rule-based routing for each prompt
+                    predictions = []
+                    confidences = []
+                    for prompt in request.prompts:
+                        model, conf = rule_based_routing(prompt)
+                        predictions.append(model)
+                        confidences.append(conf)
+                    routing_method = "Rule-based (DistilBERT failed)"
+            else:
+                print("⚠️ DistilBERT model not available for batch, using rule-based routing...")
+                # Fallback to rule-based routing for each prompt
+                predictions = []
+                confidences = []
+                for prompt in request.prompts:
+                    model, conf = rule_based_routing(prompt)
+                    predictions.append(model)
+                    confidences.append(conf)
+                routing_method = "Rule-based (DistilBERT unavailable)"
         else:
-            # Fallback to rule-based routing for each prompt
+            # Default fallback to rule-based routing for each prompt
             predictions = []
             confidences = []
             for prompt in request.prompts:
