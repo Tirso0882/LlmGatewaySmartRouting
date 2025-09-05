@@ -22,10 +22,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# Add src to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-# Import model classes with fallback
 try:
     # Try full training version first (local development)
     from distilbert_finetuner import DistilBERTFineTuner
@@ -48,14 +46,12 @@ from cost_tracker import cost_tracker
 from mock_llm_responses import mock_llm
 from real_llm_integration_example import RealLLMIntegration
 
-# Initialize FastAPI app
 app = FastAPI(
     title="LLM Gateway API",
     description="Smart routing API using fine-tuned DistilBERT model",
     version="1.0.0"
 )
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -64,7 +60,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize the fine-tuned model - Works for both local and Azure deployment
@@ -87,7 +82,6 @@ class MetricsTracker:
     
     def record_request(self, success: bool, response_time: float):
         """Record a real user request (not startup test)"""
-        # Always record requests, but mark startup test as complete on first real request
         if not self.startup_test_completed:
             self.startup_test_completed = True
             print("📊 Startup test marked complete - beginning real request tracking")
@@ -115,10 +109,8 @@ class MetricsTracker:
             return 100.0
         return (self.successful_requests / self.total_requests) * 100
 
-# Global metrics tracker
 metrics_tracker = MetricsTracker()
 
-# Pydantic models for API
 class RoutingRequest(BaseModel):
     prompt: str
     routing_mode: str = "distilbert"  # Default to DistilBERT, can be "rule-based" or "distilbert"
@@ -143,7 +135,7 @@ class HealthResponse(BaseModel):
 
 class BatchRoutingRequest(BaseModel):
     prompts: List[str]
-    routing_mode: str = "distilbert"  # Default to DistilBERT, can be "rule-based" or "distilbert"
+    routing_mode: str = "distilbert"
 
 class BatchRoutingResponse(BaseModel):
     results: List[RoutingResponse]
@@ -171,7 +163,6 @@ class LLMResponse(BaseModel):
     llm_response_time_ms: float
     cost_info: dict
 
-# Available models for routing
 AVAILABLE_MODELS = {
     'o3': {
         'name': 'o3',
@@ -207,7 +198,6 @@ def rule_based_routing(prompt: str):
 def format_llm_response_beautifully(response: str, model_name: str, prompt: str, response_time: float) -> str:
     """Format any LLM response beautifully with proper structure and styling"""
     
-    # Get model info
     model_info = AVAILABLE_MODELS.get(model_name, {})
     model_description = model_info.get('description', 'AI Model')
     
@@ -320,7 +310,13 @@ async def startup_event():
             
             # Try to load the model
             print(f"📁 Model path: {model_path}")
-            fine_tuner.load_model(model_path)
+            load_success = fine_tuner.load_model(model_path)
+            
+            if not load_success:
+                print("❌ Model loading failed, setting fine_tuner to None")
+                fine_tuner = None
+                raise Exception("Model loading returned False")
+            
             print("✅ DistilBERT model loaded successfully!")
             
             # Test the model (optional - if it fails, we'll still use the model)
@@ -330,12 +326,15 @@ async def startup_event():
                     print(f"✅ Model test passed: {test_predictions[0]} (confidence: {test_confidences[0]:.2%})")
                 else:
                     print("⚠️ Model test returned empty results")
+                    # If test fails, set fine_tuner to None to force fallback
+                    fine_tuner = None
             except Exception as test_error:
                 print(f"⚠️ Model test failed: {test_error}")
                 print(f"⚠️ Error type: {type(test_error).__name__}")
                 import traceback
                 print(f"⚠️ Stack trace: {traceback.format_exc()}")
-                print("⚠️ Model will still be available for use")
+                print("⚠️ Setting fine_tuner to None to force fallback to rule-based routing")
+                fine_tuner = None
             
             metrics_tracker.mark_startup_test_complete()
             return
@@ -372,7 +371,7 @@ async def health_check():
     """Health check endpoint"""
     return HealthResponse(
         status="healthy",
-        model_loaded=fine_tuner is not None,
+        model_loaded=fine_tuner is not None and fine_tuner.is_model_loaded(),
         available_models=list(AVAILABLE_MODELS.keys())
     )
 
@@ -439,7 +438,7 @@ async def route_prompt(request: RoutingRequest):
             recommended_model, confidence = rule_based_routing(request.prompt)
             routing_method = "Rule-based (User Requested)"
         elif request.routing_mode == "distilbert":
-            if fine_tuner is not None:
+            if fine_tuner is not None and fine_tuner.is_model_loaded():
                 try:
                     print("🤖 Using DistilBERT model for routing...")
                     # Use DistilBERT model
@@ -617,7 +616,7 @@ async def get_routing_decision(request: RoutingRequest):
             recommended_model, confidence = rule_based_routing(request.prompt)
             routing_method = "Rule-based (User Requested)"
         elif request.routing_mode == "distilbert":
-            if fine_tuner is not None:
+            if fine_tuner is not None and fine_tuner.is_model_loaded():
                 try:
                     print("🤖 Using DistilBERT model for routing...")
                     # Use DistilBERT model
@@ -811,7 +810,7 @@ async def route_batch(request: BatchRoutingRequest):
                 confidences.append(conf)
             routing_method = "Rule-based (User Requested)"
         elif request.routing_mode == "distilbert":
-            if fine_tuner is not None:
+            if fine_tuner is not None and fine_tuner.is_model_loaded():
                 try:
                     print("🤖 Using DistilBERT model for batch routing...")
                     # Use DistilBERT model for batch predictions

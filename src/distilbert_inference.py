@@ -44,25 +44,50 @@ class DistilBERTFineTuner:
         
         print(f"🤖 DistilBERT initialized on device: {self.device}")
     
+    def is_model_loaded(self) -> bool:
+        """Check if model is properly loaded and ready for inference"""
+        return (self.model is not None and 
+                self.tokenizer is not None and 
+                self.label_encoder is not None)
+    
     def load_model(self, load_path: str):
         """Load a fine-tuned model - using exact working logic from distilbert_finetuner.py"""
         try:
+            print(f"🔄 Loading model from: {load_path}")
+            print(f"📁 Checking if path exists: {os.path.exists(load_path)}")
+            
             # Load model and tokenizer - EXACT same as working version
+            print("🤖 Loading DistilBERT model...")
             self.model = DistilBertForSequenceClassification.from_pretrained(load_path)
+            print("📝 Loading tokenizer...")
             self.tokenizer = DistilBertTokenizer.from_pretrained(load_path)
+            print(f"🔧 Moving model to device: {self.device}")
             self.model.to(self.device)
             
             # Load label encoder - EXACT same as working version
+            print("🏷️ Loading label encoder...")
             import joblib
-            self.label_encoder = joblib.load(os.path.join(load_path, 'label_encoder.pkl'))
+            label_encoder_path = os.path.join(load_path, 'label_encoder.pkl')
+            print(f"📁 Label encoder path: {label_encoder_path}")
+            print(f"📁 Label encoder exists: {os.path.exists(label_encoder_path)}")
+            self.label_encoder = joblib.load(label_encoder_path)
             
             # Set label-related attributes
             if hasattr(self.label_encoder, 'classes_'):
                 self.label_names = self.label_encoder.classes_
                 self.num_labels = len(self.label_names)
+                print(f"📊 Found {self.num_labels} labels: {list(self.label_names)}")
             else:
                 self.label_names = ['o3', 'o4-mini', 'gpt-4o-mini']
                 self.num_labels = 3
+                print("⚠️ Using default labels (label encoder has no classes_)")
+            
+            # Final state check
+            print(f"🔍 Final state check:")
+            print(f"   model is None: {self.model is None}")
+            print(f"   tokenizer is None: {self.tokenizer is None}")
+            print(f"   label_encoder is None: {self.label_encoder is None}")
+            print(f"   model device: {next(self.model.parameters()).device if self.model else 'N/A'}")
             
             print(f"✅ Model loaded successfully from {load_path}")
             print(f"📊 Label mapping: {dict(zip(self.label_names, range(self.num_labels)))}")
@@ -70,46 +95,68 @@ class DistilBERTFineTuner:
             
         except Exception as e:
             print(f"❌ Failed to load model: {e}")
+            print(f"   Error type: {type(e).__name__}")
+            import traceback
+            print(f"   Traceback: {traceback.format_exc()}")
             return False
     
     def predict(self, prompts: List[str]) -> Tuple[List[str], List[float]]:
         """Make predictions on new prompts - using exact working logic from distilbert_finetuner.py"""
-        if not self.model or not self.tokenizer or not self.label_encoder:
+        # Enhanced debugging for Azure deployment
+        print(f"🔍 Debug - Model state check:")
+        print(f"   model is None: {self.model is None}")
+        print(f"   tokenizer is None: {self.tokenizer is None}")
+        print(f"   label_encoder is None: {self.label_encoder is None}")
+        
+        if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
+        if self.tokenizer is None:
+            raise ValueError("Tokenizer not loaded. Call load_model() first.")
+        if self.label_encoder is None:
+            raise ValueError("Label encoder not loaded. Call load_model() first.")
         
-        self.model.eval()
-        predictions = []
-        confidences = []
-        
-        with torch.no_grad():
-            for prompt in prompts:
-                # Tokenize
-                encoding = self.tokenizer(
-                    prompt,
-                    truncation=True,
-                    padding='max_length',
-                    max_length=512,
-                    return_tensors='pt'
-                )
-                
-                input_ids = encoding['input_ids'].to(self.device)
-                attention_mask = encoding['attention_mask'].to(self.device)
-                
-                # Forward pass
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-                logits = outputs.logits
-                
-                # Get prediction and confidence - EXACT same logic as working version
-                probabilities = torch.softmax(logits, dim=-1)
-                predicted_class = torch.argmax(probabilities, dim=-1).item()
-                confidence = torch.max(probabilities).item()
-                
-                predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
-                
-                predictions.append(predicted_label)
-                confidences.append(confidence)
-        
-        return predictions, confidences
+        try:
+            self.model.eval()
+            predictions = []
+            confidences = []
+            
+            with torch.no_grad():
+                for prompt in prompts:
+                    # Tokenize
+                    encoding = self.tokenizer(
+                        prompt,
+                        truncation=True,
+                        padding='max_length',
+                        max_length=512,
+                        return_tensors='pt'
+                    )
+                    
+                    input_ids = encoding['input_ids'].to(self.device)
+                    attention_mask = encoding['attention_mask'].to(self.device)
+                    
+                    # Forward pass
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                    logits = outputs.logits
+                    
+                    # Get prediction and confidence - EXACT same logic as working version
+                    probabilities = torch.softmax(logits, dim=-1)
+                    predicted_class = torch.argmax(probabilities, dim=-1).item()
+                    confidence = torch.max(probabilities).item()
+                    
+                    predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
+                    
+                    predictions.append(predicted_label)
+                    confidences.append(confidence)
+            
+            print(f"✅ Successfully predicted {len(predictions)} prompts")
+            return predictions, confidences
+            
+        except Exception as e:
+            print(f"❌ Error during prediction: {e}")
+            print(f"   Error type: {type(e).__name__}")
+            import traceback
+            print(f"   Traceback: {traceback.format_exc()}")
+            raise
 
 
 if __name__ == "__main__":
