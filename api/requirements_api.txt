@@ -6,6 +6,7 @@ python-dotenv==1.0.1
 requests==2.32.5
 
 # Lightweight ML dependencies for Azure App Service
+# Use compatible NumPy version to avoid numpy._core issues
 numpy==1.24.3
 scikit-learn==1.3.0
 

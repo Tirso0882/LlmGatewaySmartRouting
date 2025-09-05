@@ -56,7 +56,7 @@ class DistilBERTFineTuner:
             print(f"🔄 Loading model from: {load_path}")
             print(f"📁 Checking if path exists: {os.path.exists(load_path)}")
             
-            # Load model and tokenizer - EXACT same as working version
+            # Load model and tokenizer
             print("🤖 Loading DistilBERT model...")
             self.model = DistilBertForSequenceClassification.from_pretrained(load_path)
             print("📝 Loading tokenizer...")
@@ -64,13 +64,29 @@ class DistilBERTFineTuner:
             print(f"🔧 Moving model to device: {self.device}")
             self.model.to(self.device)
             
-            # Load label encoder - EXACT same as working version
+            # Load label encoder
             print("🏷️ Loading label encoder...")
+            import pickle
+
             import joblib
             label_encoder_path = os.path.join(load_path, 'label_encoder.pkl')
             print(f"📁 Label encoder path: {label_encoder_path}")
             print(f"📁 Label encoder exists: {os.path.exists(label_encoder_path)}")
-            self.label_encoder = joblib.load(label_encoder_path)
+            
+            # Try joblib first, fallback to pickle if it fails
+            try:
+                self.label_encoder = joblib.load(label_encoder_path)
+                print("✅ Label encoder loaded with joblib")
+            except Exception as joblib_error:
+                print(f"⚠️ Joblib loading failed: {joblib_error}")
+                print("🔄 Trying pickle as fallback...")
+                try:
+                    with open(label_encoder_path, 'rb') as f:
+                        self.label_encoder = pickle.load(f)
+                    print("✅ Label encoder loaded with pickle")
+                except Exception as pickle_error:
+                    print(f"❌ Pickle loading also failed: {pickle_error}")
+                    raise pickle_error
             
             # Set label-related attributes
             if hasattr(self.label_encoder, 'classes_'):

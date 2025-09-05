@@ -133,7 +133,7 @@ class PromptAnalyzer:
             },
             'o4-mini': {
                 'cost_per_1k_tokens': 0.005,  # Balanced cost-performance
-                'avg_response_time_ms': 1500,  # Moderate response time
+                'avg_response_time_ms': 2000,  # Moderate response time
                 'max_tokens': 16384,
                 'use_cases': ['balanced_tasks', 'cost_efficient', 'general_purpose', 'cost_priority'],
                 'complexity_threshold': PromptComplexity.MODERATE,
