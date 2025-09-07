@@ -1,0 +1,16 @@
+services:
+  smart-router:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - O3_ENDPOINT=${O3_ENDPOINT}
+      - O3_API_KEY=${O3_API_KEY}
+      - GPT4O_MINI_ENDPOINT=${GPT4O_MINI_ENDPOINT}
+      - GPT4O_MINI_API_KEY=${GPT4O_MINI_API_KEY}
+      - O4_MINI_ENDPOINT=${O4_MINI_ENDPOINT}
+      - O4_MINI_API_KEY=${O4_MINI_API_KEY}
+      - DEBUG=${DEBUG:-false}
+    env_file:
+      - .env
+    restart: unless-stopped
