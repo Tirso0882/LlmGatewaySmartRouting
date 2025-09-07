@@ -1,8 +1,9 @@
 name: Deploy LLM Gateway to Azure App Service
 
 on:
-  push:
-    branches: [ main ]
+  # Disabled - using manual deployment with update-deployment.sh
+  # push:
+  #   branches: [ main ]
   workflow_dispatch:
 
 env:
