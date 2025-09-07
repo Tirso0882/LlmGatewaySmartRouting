@@ -73,7 +73,6 @@ class MockLLMResponseGenerator:
         # Determine response type based on prompt content
         response_type = self._classify_prompt(prompt)
         
-        # Generate appropriate response
         if response_type == 'weather':
             response = self._generate_weather_response(model_name)
         elif response_type == 'math':
@@ -91,14 +90,13 @@ class MockLLMResponseGenerator:
     def _format_response_beautifully(self, response: str, model_name: str, prompt: str) -> str:
         """Format the response beautifully with clean, professional styling"""
         
-        # Create a clean, simple header
+
         header = f"""
 # 🤖 {model_name.upper()} Response
 
----
 """
         
-        # Format the response content based on type
+
         response_type = self._classify_prompt(prompt)
         
         if response_type == 'code':
@@ -110,10 +108,9 @@ class MockLLMResponseGenerator:
         else:
             formatted_content = self._format_general_response(response)
         
-        # Simple footer with just a separator
+
         footer = f"""
 
----
 """
         
         return header + formatted_content + footer
@@ -121,7 +118,7 @@ class MockLLMResponseGenerator:
     def _format_code_response(self, response: str) -> str:
         """Format code responses with clean syntax highlighting"""
         
-        # Determine the type of code response
+
         if 'comprehensive' in response.lower():
             code_type = "Comprehensive Code Solution"
             features = "Performance optimization and detailed explanations"
@@ -150,7 +147,7 @@ class MockLLMResponseGenerator:
     
     def _format_math_response(self, response: str) -> str:
         """Format math responses with clear structure"""
-        # Determine the type of math response
+
         if 'step by step' in response.lower():
             method_type = "Step-by-Step Solution"
             approach = "Systematic analysis and logical reasoning"
@@ -179,14 +176,14 @@ class MockLLMResponseGenerator:
     
     def _format_weather_response(self, response: str) -> str:
         """Format weather responses with visual elements"""
-        # Extract temperature from response
+
         temp_match = None
         if '°F' in response:
             temp_parts = response.split('°F')[0].split()
             if temp_parts:
                 temp_match = temp_parts[-1] + '°F'
         
-        # Extract condition from response
+
         conditions = ['sunny', 'cloudy', 'partly cloudy', 'rainy', 'overcast']
         condition_match = None
         for condition in conditions:
@@ -212,7 +209,7 @@ class MockLLMResponseGenerator:
     
     def _format_general_response(self, response: str) -> str:
         """Format general responses with clear structure"""
-        # Extract meaningful content from response
+
         if 'comprehensive analysis' in response.lower():
             content_type = "Comprehensive Analysis"
             key_points = "Multiple perspectives and detailed insights"
@@ -262,13 +259,11 @@ class MockLLMResponseGenerator:
     def _generate_weather_response(self, model_name: str) -> str:
         """Generate a weather-related response"""
         
-        # Generate realistic weather data
         temp = random.randint(45, 85)
         condition = random.choice(['sunny', 'cloudy', 'partly cloudy', 'rainy', 'overcast'])
         wind = random.randint(5, 25)
         direction = random.choice(['north', 'south', 'east', 'west', 'northeast', 'northwest'])
         
-        # Generate intelligent weather responses based on model
         if model_name == 'o3':
             return f"Based on current meteorological data and atmospheric conditions, I can provide a comprehensive weather analysis. The temperature is currently {temp}°F with {condition} conditions. Wind speeds are {wind} mph from the {direction}. This weather pattern is typical for this time of year, influenced by prevailing pressure systems. The conditions suggest it's suitable for outdoor activities if you're prepared for the current temperature and wind conditions."
         elif model_name == 'gpt-4o-mini':
@@ -279,7 +274,6 @@ class MockLLMResponseGenerator:
     def _generate_math_response(self, model_name: str) -> str:
         """Generate a math-related response"""
         
-        # Generate more intelligent math responses based on model
         if model_name == 'o3':
             return "Let me solve this mathematical problem step by step. First, I'll analyze the equation structure and identify the mathematical principles involved. Using systematic algebraic manipulation, I can derive the solution through logical reasoning. This solution is verified by substituting back into the original equation, confirming mathematical consistency and accuracy."
         elif model_name == 'gpt-4o-mini':
@@ -290,7 +284,6 @@ class MockLLMResponseGenerator:
     def _generate_code_response(self, model_name: str) -> str:
         """Generate a code-related response"""
         
-        # Generate intelligent code responses based on model
         if model_name == 'o3':
             return "I'll provide a comprehensive code solution with detailed explanations. Here's the implementation:\n\n```python\ndef optimized_solution(data):\n    # Pre-process data for efficiency\n    processed = [x for x in data if x is not None]\n    \n    # Apply optimized algorithm\n    result = sorted(processed, key=lambda x: x.value)\n    \n    return result\n```\n\nThis solution addresses performance aspects through efficient data preprocessing and optimized sorting. The time complexity is O(n log n) and space complexity is O(n), making it suitable for production use."
         elif model_name == 'gpt-4o-mini':
@@ -307,8 +300,7 @@ class MockLLMResponseGenerator:
             topic = ' '.join(prompt_words[:3])
         else:
             topic = prompt.strip()
-        
-        # Generate intelligent responses based on prompt content
+
         if 'meaning' in prompt.lower() or 'explain' in prompt.lower():
             responses = {
                 'o3': f"I'll provide a comprehensive analysis of '{topic}'. This concept involves several key considerations: its historical development, current applications across different fields, and future implications. The most important aspect is understanding the underlying principles and how they connect to broader theoretical frameworks. This understanding is crucial for both academic study and practical application in real-world scenarios.",
@@ -328,7 +320,6 @@ class MockLLMResponseGenerator:
                 'o4-mini': f"Understanding why {topic} matters helps us see its value and apply it more effectively in different situations."
             }
         else:
-            # Default intelligent response
             responses = {
                 'o3': f"I'll provide a comprehensive analysis of '{topic}'. This topic involves several key considerations: its fundamental nature, current applications in various fields, and future implications. The most important aspect is understanding the underlying principles and how they connect to broader theoretical frameworks. This understanding is crucial for both academic study and practical application in real-world scenarios.",
                 'gpt-4o-mini': f"Quick answer about {topic}: This is a straightforward topic with clear applications in everyday use.",
@@ -341,5 +332,4 @@ class MockLLMResponseGenerator:
         """Get the characteristics of a specific model"""
         return self.model_personalities.get(model_name, {})
 
-# Global instance
 mock_llm = MockLLMResponseGenerator()

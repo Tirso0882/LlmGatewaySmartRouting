@@ -227,5 +227,4 @@ class CostTracker:
         self.start_time = time.time()
 
 
-# Global cost tracker instance
 cost_tracker = CostTracker()

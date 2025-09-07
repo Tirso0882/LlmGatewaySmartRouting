@@ -1,6 +1,6 @@
 """
 LLM Gateway API - Fine-tuned Routing
-API for testing the fine-tuned DistilBERT routing model
+API for fine-tuned DistilBERT routing model
 
 ROUTING MODES:
 - rule-based: Uses keyword-based model selection + MOCK responses (no real LLM calls)
@@ -22,20 +22,23 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+current_dir = os.path.dirname(__file__)
+parent_dir = os.path.dirname(current_dir)
+
+
+sys.path.append(current_dir)  # For Docker (flat structure)
+sys.path.append(parent_dir)   # For local development (nested structure)
+sys.path.append(os.path.join(parent_dir, 'src'))
 
 try:
-    # Try lightweight inference version first (preferred for API)
     from distilbert_inference import DistilBERTFineTuner
     print("✅ Lightweight DistilBERTFineTuner loaded (inference environment)")
 except ImportError:
     try:
-        # Try src path (fallback)
         from src.distilbert_inference import DistilBERTFineTuner
         print("✅ Lightweight DistilBERTFineTuner loaded (src path)")
     except ImportError:
         try:
-            # Try full training version as last resort (local development)
             from distilbert_finetuner import DistilBERTFineTuner
             print("✅ Full DistilBERTFineTuner loaded (training environment)")
         except ImportError:
@@ -44,7 +47,7 @@ except ImportError:
 
 from cost_tracker import cost_tracker
 from mock_llm_responses import mock_llm
-from real_llm_integration_example import RealLLMIntegration
+from real_llm_integration import RealLLMIntegration
 
 app = FastAPI(
     title="LLM Gateway API",
@@ -60,18 +63,46 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_paths = [
+    "static",
+    os.path.join(current_dir, "static"),
+    os.path.join(parent_dir, "api", "static")
+]
 
-# Initialize the fine-tuned model - Works for both local and Azure deployment
-if os.path.exists(os.path.join(os.getcwd(), 'models', 'distilbert_llm_router')):
-    # Azure deployment: models are in the same directory as the app
-    model_path = os.path.join(os.getcwd(), 'models', 'distilbert_llm_router')
+static_dir = None
+for path in static_paths:
+    if os.path.exists(path):
+        static_dir = path
+        print(f"✅ Found static files at: {path}")
+        break
+
+if static_dir:
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 else:
-    # Local development: models are in the parent directory
-    model_path = os.path.join(os.path.dirname(os.getcwd()), 'models', 'distilbert_llm_router')
+    print("⚠️ Static files directory not found")
+
+def find_model_path():
+    """Find the model path in both local development and Docker environments"""
+    possible_paths = [
+        # Docker deployment (flat structure)
+        os.path.join(os.getcwd(), 'models', 'distilbert_llm_router'),
+        # Local development (nested structure)
+        os.path.join(parent_dir, 'models', 'distilbert_llm_router'),
+        # Alternative local path
+        os.path.join(os.path.dirname(os.getcwd()), 'models', 'distilbert_llm_router')
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            print(f"✅ Found model at: {path}")
+            return path
+    
+    print("⚠️ Model not found in any expected location")
+    return None
+
+model_path = find_model_path()
 fine_tuner = None
 
-# Metrics tracking
 class MetricsTracker:
     def __init__(self):
         self.total_requests = 0
@@ -203,15 +234,14 @@ def format_llm_response_beautifully(response: str, model_name: str, prompt: str,
     
     # Create beautiful header
     header = f"""
-# 🤖 {model_name.upper()} Response
+        # 🤖 {model_name.upper()} Response
 
-Model Type: {model_description}
-Response Time: {response_time:.2f}ms
-Query: {prompt[:100]}{'...' if len(prompt) > 100 else ''}
+        Model Type: {model_description}
+        Response Time: {response_time:.2f}ms
+        Query: {prompt[:100]}{'...' if len(prompt) > 100 else ''}
 
----
-
-"""
+        ---
+    """
     
     # Format the response content
     if '```' in response:
@@ -221,81 +251,84 @@ Query: {prompt[:100]}{'...' if len(prompt) > 100 else ''}
 
 {response}
 
-### 📋 Key Features:
-- Efficiency: Optimized for performance
-- Readability: Clean, well-documented code
-- Maintainability: Follows best practices
+        ### 📋 Key Features:
+        - Efficiency: Optimized for performance
+        - Readability: Clean, well-documented code
+        - Maintainability: Follows best practices
 
-### 🚀 Implementation Notes:
-- Best Practices: Industry-standard coding patterns
-- Error Handling: Robust error management
-- Documentation: Clear code comments
-"""
+        ### 🚀 Implementation Notes:
+        - Best Practices: Industry-standard coding patterns
+        - Error Handling: Robust error management
+        - Documentation: Clear code comments
+    """
+    
     elif any(word in prompt.lower() for word in ['solve', 'equation', 'calculate', 'math']):
         # Math response
         formatted_content = f"""
-## 🧮 Mathematical Solution
+        ## 🧮 Mathematical Solution
 
-{response}
+        {response}
 
-### 📐 Step-by-Step Breakdown:
-1. Problem Analysis: Understanding the equation structure
-2. Solution Method: Applying appropriate mathematical principles
-3. Verification: Confirming the solution is correct
+        ### 📐 Step-by-Step Breakdown:
+        1. Problem Analysis: Understanding the equation structure
+        2. Solution Method: Applying appropriate mathematical principles
+        3. Verification: Confirming the solution is correct
 
-### 💡 Mathematical Concepts:
-- Problem-solving strategies
-- Mathematical verification
-- Solution optimization
-"""
+        ### 💡 Mathematical Concepts:
+        - Problem-solving strategies
+        - Mathematical verification
+        - Solution optimization
+    """
+    
     elif any(word in prompt.lower() for word in ['weather', 'temperature', 'forecast']):
         # Weather response
         formatted_content = f"""
-## 🌤️ Weather Information
+        ## 🌤️ Weather Information
 
-{response}
+        {response}
 
-### 📊 Weather Summary:
-- Current Conditions: Detailed analysis
-- Forecast: Predictive information
-- Recommendations: Activity suggestions
+        ### 📊 Weather Summary:
+        - Current Conditions: Detailed analysis
+        - Forecast: Predictive information
+        - Recommendations: Activity suggestions
 
-### 🌍 Weather Context:
-- Seasonal Patterns: Time-of-year factors
-- Atmospheric Conditions: Environmental factors
-- Local Influences: Regional characteristics
-"""
+        ### 🌍 Weather Context:
+        - Seasonal Patterns: Time-of-year factors
+        - Atmospheric Conditions: Environmental factors
+        - Local Influences: Regional characteristics
+    """
+    
     else:
         # General response
         formatted_content = f"""
-## 📚 Comprehensive Answer
+        ## 📚 Comprehensive Answer
 
-{response}
+        {response}
 
-### 🎯 Key Points:
-- Main Topic: {prompt.split()[0] if prompt else 'General Information'}
-- Important Details: Highlighted in the response above
-- Practical Applications: Real-world relevance
+        ### 🎯 Key Points:
+        - Main Topic: {prompt.split()[0] if prompt else 'General Information'}
+        - Important Details: Highlighted in the response above
+        - Practical Applications: Real-world relevance
 
-### 🔍 Additional Context:
-- Background Information: Supporting details
-- Related Concepts: Connected topics
-- Further Reading: Suggested areas for exploration
-"""
+        ### 🔍 Additional Context:
+        - Background Information: Supporting details
+        - Related Concepts: Connected topics
+        - Further Reading: Suggested areas for exploration
+    """
     
     # Add footer with model insights
     footer = f"""
 
----
+        ---
 
-💡 Model Insights:
-- Confidence: {random.randint(85, 98)}%
-- Processing: {model_info.get('avg_response_time_ms', 'N/A')}ms average
-- Specialization: {model_info.get('best_for', ['General tasks'])[0] if model_info.get('best_for') else 'General tasks'}
+        💡 Model Insights:
+        - Confidence: {random.randint(85, 98)}%
+        - Processing: {model_info.get('avg_response_time_ms', 'N/A')}ms average
+        - Specialization: {model_info.get('best_for', ['General tasks'])[0] if model_info.get('best_for') else 'General tasks'}
 
-🔗 Learn More: This response was generated using {model_name} for optimal performance.
-"""
-    
+        🔗 Learn More: This response was generated using {model_name} for optimal performance.
+     """
+            
     return header + formatted_content + footer
 
 @app.on_event("startup")
@@ -308,7 +341,6 @@ async def startup_event():
         if DistilBERTFineTuner:
             fine_tuner = DistilBERTFineTuner()
             
-            # Try to load the model
             print(f"📁 Model path: {model_path}")
             load_success = fine_tuner.load_model(model_path)
             
@@ -319,7 +351,6 @@ async def startup_event():
             
             print("✅ DistilBERT model loaded successfully!")
             
-            # Test the model (optional - if it fails, we'll still use the model)
             try:
                 test_predictions, test_confidences = fine_tuner.predict(["test prompt"])
                 if test_predictions and len(test_predictions) > 0 and test_confidences and len(test_confidences) > 0:
@@ -362,6 +393,9 @@ async def root():
             "batch": "/route/batch",
             "models": "/models",
             "stats": "/stats",
+            "metrics": "/metrics",
+            "costs": "/costs",
+            "pricing": "/pricing",
             "dashboard": "/dashboard"
         }
     }
@@ -400,7 +434,6 @@ async def get_metrics():
         "startup_test_completed": metrics_tracker.startup_test_completed
     }
     
-    # Debug logging for metrics
     print(f"📊 Metrics requested: {metrics_data}")
     
     return metrics_data
@@ -429,10 +462,8 @@ async def route_prompt(request: RoutingRequest):
     print(f"🚀 Processing route request for prompt: '{request.prompt[:50]}...'")
     
     try:
-        # Measure inference time
         start_time = time.time()
         
-        # Check routing mode preference
         if request.routing_mode == "rule-based":
             print("📋 Using rule-based routing as requested...")
             recommended_model, confidence = rule_based_routing(request.prompt)
@@ -441,7 +472,6 @@ async def route_prompt(request: RoutingRequest):
             if fine_tuner is not None and fine_tuner.is_model_loaded():
                 try:
                     print("🤖 Using DistilBERT model for routing...")
-                    # Use DistilBERT model
                     predictions, confidences = fine_tuner.predict([request.prompt])
                     recommended_model = predictions[0]
                     confidence = confidences[0]
@@ -466,13 +496,11 @@ async def route_prompt(request: RoutingRequest):
         print(f"🎯 Routing decision: {recommended_model} with {confidence:.2%} confidence")
         
         end_time = time.time()
-        inference_time = (end_time - start_time) * 1000  # Convert to ms
+        inference_time = (end_time - start_time) * 1000
         
-        # Get alternative models (all except the recommended one)
         alternative_models = [model for model in AVAILABLE_MODELS.keys() 
                             if model != recommended_model]
         
-        # Generate reasoning based on model characteristics
         model_info = AVAILABLE_MODELS[recommended_model]
         reasoning = f"[{routing_method}] Selected {recommended_model} ({model_info['description']}) with {confidence:.2%} confidence"
         
@@ -486,32 +514,31 @@ async def route_prompt(request: RoutingRequest):
                 print(f"✅ Mock response generated in {llm_response_time:.2f}ms")
             except Exception as mock_error:
                 print(f"⚠️ Mock response failed: {mock_error}, using informative message")
-                # Fallback to informative message
+
                 llm_response = f"""🚫 LLM Access Unavailable
 
-Model Selected: {recommended_model}
-Reasoning: The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+                    Model Selected: {recommended_model}
+                    Reasoning: The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-What this means:
-- ✅ Routing Decision: Successfully completed
-- ✅ Model Selection: {recommended_model} was chosen as the optimal model
-- ❌ LLM Response: Cannot be generated at this time
+                    What this means:
+                    - ✅ Routing Decision: Successfully completed
+                    - ✅ Model Selection: {recommended_model} was chosen as the optimal model
+                    - ❌ LLM Response: Cannot be generated at this time
 
-Possible reasons:
-- LLM service is temporarily unavailable
-- API keys or credentials need to be configured
-- Network connectivity issues
-- Service quota limits reached
+                    Possible reasons:
+                    - LLM service is temporarily unavailable
+                    - API keys or credentials need to be configured
+                    - Network connectivity issues
+                    - Service quota limits reached
 
-Next steps:
-- Check your LLM service configuration
-- Verify API keys and permissions
-- Try again in a few moments
-"""
-                llm_response_time = 50.0  # Quick response time for fallback
+                    Next steps:
+                    - Check your LLM service configuration
+                    - Verify API keys and permissions
+                    - Try again in a few moments
+                """
+                llm_response_time = 50.0
                 print("✅ Informative fallback response generated")
-        else:
-            # Use real LLM for DistilBERT mode
+        else:      
             print("🤖 Generating real LLM response...")
             try:
                 real_llm = RealLLMIntegration()
@@ -519,42 +546,40 @@ Next steps:
                 print(f"✅ Real LLM response generated in {llm_response_time:.2f}ms")
             except Exception as e:
                 print(f"⚠️ Real LLM call failed: {e}, using informative message")
-                # Fallback to informative message instead of mock
                 llm_response = f"""🚫 LLM Access Unavailable
 
-Model Selected: {recommended_model}
-Reasoning: The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+                    Model Selected: {recommended_model}
+                    Reasoning: The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-What this means:
-- ✅ AI Routing: Successfully completed with DistilBERT
-- ✅ Model Selection: {recommended_model} was chosen as the optimal model
-- ❌ LLM Response: Cannot be generated at this time
+                    What this means:
+                    - ✅ AI Routing: Successfully completed with DistilBERT
+                    - ✅ Model Selection: {recommended_model} was chosen as the optimal model
+                    - ❌ LLM Response: Cannot be generated at this time
 
-Error Details: {str(e)}
+                    Error Details: {str(e)}
 
-Possible reasons:
-- LLM service is temporarily unavailable
-- API keys or credentials need to be configured
-- Network connectivity issues
-- Service quota limits reached
-- Model-specific access restrictions
+                    Possible reasons:
+                    - LLM service is temporarily unavailable
+                    - API keys or credentials need to be configured
+                    - Network connectivity issues
+                    - Service quota limits reached
+                    - Model-specific access restrictions
 
-Next steps:
-- Check your LLM service configuration
-- Verify API keys and permissions
-- Try again in a few moments
-- Contact your system administrator if the issue persists
-"""
-                llm_response_time = 50.0  # Quick response time for fallback
+                    Next steps:
+                    - Check your LLM service configuration
+                    - Verify API keys and permissions
+                    - Try again in a few moments
+                    - Contact your system administrator if the issue persists
+                """
+                llm_response_time = 50.0
                 print("✅ Informative fallback response generated")
         
-        # Track cost for this request
         cost_info = cost_tracker.track_request_cost(
             model_name=recommended_model,
             prompt=request.prompt,
             response=llm_response,
             session_id=request.session_id,
-            use_cached_input=False,  # Could be enhanced based on request
+            use_cached_input=False,
             use_batch_api=False
         )
         
@@ -562,7 +587,6 @@ Next steps:
         
         print(f"🎉 Routing completed successfully in {inference_time:.2f}ms")
         
-        # Log routing summary
         print(f"📊 ROUTING SUMMARY:")
         print(f"   Mode: {request.routing_mode}")
         print(f"   Method: {routing_method}")
@@ -570,7 +594,6 @@ Next steps:
         print(f"   Response Type: {'Mock' if request.routing_mode == 'rule-based' else 'Real LLM'}")
         print(f"   Total Time: {inference_time + llm_response_time:.2f}ms")
         
-        # Record successful request metrics
         total_response_time = inference_time + llm_response_time
         metrics_tracker.record_request(success=True, response_time=total_response_time)
         
@@ -592,12 +615,10 @@ Next steps:
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         
-        # Record failed request metrics
         metrics_tracker.record_request(success=False, response_time=0.0)
         
         raise HTTPException(status_code=500, detail=f"Routing error: {str(e)}")
 
-# New endpoint to get routing decision first (without LLM response)
 @app.post("/route/decision", response_model=RoutingDecisionResponse)
 async def get_routing_decision(request: RoutingRequest):
     """Get routing decision immediately without generating LLM response"""
@@ -607,10 +628,8 @@ async def get_routing_decision(request: RoutingRequest):
     print(f"🚀 Processing routing decision for prompt: '{request.prompt[:50]}...'")
     
     try:
-        # Measure inference time
         start_time = time.time()
         
-        # Check routing mode preference
         if request.routing_mode == "rule-based":
             print("📋 Using rule-based routing as requested...")
             recommended_model, confidence = rule_based_routing(request.prompt)
@@ -619,7 +638,6 @@ async def get_routing_decision(request: RoutingRequest):
             if fine_tuner is not None and fine_tuner.is_model_loaded():
                 try:
                     print("🤖 Using DistilBERT model for routing...")
-                    # Use DistilBERT model
                     predictions, confidences = fine_tuner.predict([request.prompt])
                     recommended_model = predictions[0]
                     confidence = confidences[0]
@@ -628,7 +646,6 @@ async def get_routing_decision(request: RoutingRequest):
                 except Exception as model_error:
                     print(f"⚠️ DistilBERT prediction failed: {model_error}")
                     print("   Error details:", str(model_error))
-                    # Fallback to rule-based routing but keep the DistilBERT routing method label
                     recommended_model, confidence = rule_based_routing(request.prompt)
                     routing_method = "Rule-based (DistilBERT failed)"
             else:
@@ -637,20 +654,17 @@ async def get_routing_decision(request: RoutingRequest):
                 routing_method = "Rule-based (DistilBERT unavailable)"
         else:
             print("📋 Using rule-based routing...")
-            # Default fallback to rule-based routing
             recommended_model, confidence = rule_based_routing(request.prompt)
             routing_method = "Rule-based"
         
         print(f"🎯 Routing decision: {recommended_model} with {confidence:.2%} confidence")
         
         end_time = time.time()
-        inference_time = (end_time - start_time) * 1000  # Convert to ms
+        inference_time = (end_time - start_time) * 1000
         
-        # Get alternative models (all except the recommended one)
         alternative_models = [model for model in AVAILABLE_MODELS.keys() 
                             if model != recommended_model]
         
-        # Generate reasoning based on model characteristics
         model_info = AVAILABLE_MODELS[recommended_model]
         reasoning = f"[{routing_method}] Selected {recommended_model} ({model_info['description']}) with {confidence:.2%} confidence"
         
@@ -677,7 +691,6 @@ async def get_routing_decision(request: RoutingRequest):
         
         raise HTTPException(status_code=500, detail=f"Routing decision error: {str(e)}")
 
-# New endpoint to generate LLM response after routing decision
 @app.post("/route/response", response_model=LLMResponse)
 async def generate_llm_response(request: LLMRequest):
     """Generate LLM response for a specific model and prompt"""
@@ -685,9 +698,6 @@ async def generate_llm_response(request: LLMRequest):
     print(f"🤖 Generating LLM response for {request.model}...")
     
     try:
-        start_time = time.time()
-        
-        # Generate response based on routing mode
         if request.routing_mode == "rule-based":
             print("📋 Using mock response for rule-based routing...")
             try:
@@ -695,32 +705,30 @@ async def generate_llm_response(request: LLMRequest):
                 print(f"✅ Mock response generated in {llm_response_time:.2f}ms")
             except Exception as mock_error:
                 print(f"⚠️ Mock response failed: {mock_error}, using informative message")
-                # Fallback to informative message
                 llm_response = f"""🚫 LLM Access Unavailable
 
-Model Selected: {request.model}
-Reasoning: The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+                    Model Selected: {request.model}
+                    Reasoning: The routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-What this means:
-- ✅ Routing Decision: Successfully completed
-- ✅ Model Selection: {request.model} was chosen as the optimal model
-- ❌ LLM Response: Cannot be generated at this time
+                    What this means:
+                    - ✅ Routing Decision: Successfully completed
+                    - ✅ Model Selection: {request.model} was chosen as the optimal model
+                    - ❌ LLM Response: Cannot be generated at this time
 
-Possible reasons:
-- LLM service is temporarily unavailable
-- API keys or credentials need to be configured
-- Network connectivity issues
-- Service quota limits reached
+                    Possible reasons:
+                    - LLM service is temporarily unavailable
+                    - API keys or credentials need to be configured
+                    - Network connectivity issues
+                    - Service quota limits reached
 
-Next steps:
-- Check your LLM service configuration
-- Verify API keys and permissions
-- Try again in a few moments
-"""
-                llm_response_time = 50.0  # Quick response time for fallback
+                    Next steps:
+                    - Check your LLM service configuration
+                    - Verify API keys and permissions
+                    - Try again in a few moments
+                """
+                llm_response_time = 50.0
                 print("✅ Informative fallback response generated")
         else:
-            # Use real LLM for DistilBERT mode
             print("🤖 Generating real LLM response...")
             try:
                 real_llm = RealLLMIntegration()
@@ -728,48 +736,45 @@ Next steps:
                 print(f"✅ Real LLM response generated in {llm_response_time:.2f}ms")
             except Exception as e:
                 print(f"⚠️ Real LLM call failed: {e}, using informative message")
-                # Fallback to informative message instead of mock
                 llm_response = f"""🚫 LLM Access Unavailable
 
-Model Selected: {request.model}
-Reasoning: The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
+                    Model Selected: {request.model}
+                    Reasoning: The AI routing system successfully identified the best model for your request, but the actual LLM service is currently unavailable.
 
-What this means:
-- ✅ AI Routing: Successfully completed with DistilBERT
-- ✅ Model Selection: {request.model} was chosen as the optimal model
-- ❌ LLM Response: Cannot be generated at this time
+                    What this means:
+                    - ✅ AI Routing: Successfully completed with DistilBERT
+                    - ✅ Model Selection: {request.model} was chosen as the optimal model
+                    - ❌ LLM Response: Cannot be generated at this time
 
-Error Details: {str(e)}
+                    Error Details: {str(e)}
 
-Possible reasons:
-- LLM service is temporarily unavailable
-- API keys or credentials need to be configured
-- Network connectivity issues
-- Service quota limits reached
-- Model-specific access restrictions
+                    Possible reasons:
+                    - LLM service is temporarily unavailable
+                    - API keys or credentials need to be configured
+                    - Network connectivity issues
+                    - Service quota limits reached
+                    - Model-specific access restrictions
 
-Next steps:
-- Check your LLM service configuration
-- Verify API keys and permissions
-- Try again in a few moments
-- Contact your system administrator if the issue persists
-"""
-                llm_response_time = 50.0  # Quick response time for fallback
+                    Next steps:
+                    - Check your LLM service configuration
+                    - Verify API keys and permissions
+                    - Try again in a few moments
+                    - Contact your system administrator if the issue persists
+                """
+                llm_response_time = 50.0
                 print("✅ Informative fallback response generated")
         
-        # Track cost for this request
         cost_info = cost_tracker.track_request_cost(
             model_name=request.model,
             prompt=request.prompt,
             response=llm_response,
             session_id=request.session_id,
-            use_cached_input=False,  # Could be enhanced based on request
+            use_cached_input=False,
             use_batch_api=False
         )
         
         print(f"💰 Cost tracked: {cost_info['cost_breakdown']['total_cost']:.6f} USD")
         
-        # Record metrics for this request
         metrics_tracker.record_request(success=True, response_time=llm_response_time)
         
         return LLMResponse(
@@ -786,7 +791,6 @@ Next steps:
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         
-        # Record failed request metrics
         metrics_tracker.record_request(success=False, response_time=0.0)
         
         raise HTTPException(status_code=500, detail=f"LLM response error: {str(e)}")
@@ -798,10 +802,8 @@ async def route_batch(request: BatchRoutingRequest):
     try:
         start_time = time.time()
         
-        # Check routing mode preference
         if request.routing_mode == "rule-based":
             print("📋 Using rule-based routing for batch as requested...")
-            # Use rule-based routing for each prompt
             predictions = []
             confidences = []
             for prompt in request.prompts:
@@ -813,12 +815,10 @@ async def route_batch(request: BatchRoutingRequest):
             if fine_tuner is not None and fine_tuner.is_model_loaded():
                 try:
                     print("🤖 Using DistilBERT model for batch routing...")
-                    # Use DistilBERT model for batch predictions
                     predictions, confidences = fine_tuner.predict(request.prompts)
                     routing_method = "DistilBERT"
                 except Exception as model_error:
                     print(f"⚠️ DistilBERT batch prediction failed: {model_error}, falling back to rule-based routing")
-                    # Fallback to rule-based routing for each prompt
                     predictions = []
                     confidences = []
                     for prompt in request.prompts:
@@ -828,7 +828,6 @@ async def route_batch(request: BatchRoutingRequest):
                     routing_method = "Rule-based (DistilBERT failed)"
             else:
                 print("⚠️ DistilBERT model not available for batch, using rule-based routing...")
-                # Fallback to rule-based routing for each prompt
                 predictions = []
                 confidences = []
                 for prompt in request.prompts:
@@ -837,7 +836,6 @@ async def route_batch(request: BatchRoutingRequest):
                     confidences.append(conf)
                 routing_method = "Rule-based (DistilBERT unavailable)"
         else:
-            # Default fallback to rule-based routing for each prompt
             predictions = []
             confidences = []
             for prompt in request.prompts:
@@ -849,51 +847,41 @@ async def route_batch(request: BatchRoutingRequest):
         end_time = time.time()
         total_time = (end_time - start_time) * 1000
         
-        # Create results
         results = []
         for i, prompt in enumerate(request.prompts):
             recommended_model = predictions[i]
             confidence = confidences[i]
             
-            # Get alternative models
             alternative_models = [model for model in AVAILABLE_MODELS.keys() 
                                 if model != recommended_model]
             
-            # Generate reasoning
             model_info = AVAILABLE_MODELS[recommended_model]
             reasoning = f"[{routing_method}] Selected {recommended_model} ({model_info['description']}) with {confidence:.2%} confidence"
             
-            # Generate response based on routing mode
             if request.routing_mode == "rule-based":
-                # Use mock response for rule-based routing
                 try:
                     llm_response, llm_response_time = mock_llm.generate_response(recommended_model, prompt)
                 except Exception as e:
-                    # Fallback to simple response
                     llm_response = f"Response from {recommended_model}: {prompt}"
                     llm_response_time = 100.0
             else:
-                # Use real LLM for DistilBERT mode
                 try:
                     real_llm = RealLLMIntegration()
                     llm_response, llm_response_time = real_llm.call_real_llm(recommended_model, prompt)
                 except Exception as e:
-                    # Fallback to mock response if real LLM fails
                     try:
                         llm_response, llm_response_time = mock_llm.generate_response(recommended_model, prompt)
                     except Exception as mock_error:
-                        # Ultimate fallback - simple response
                         llm_response = f"Response from {recommended_model}: {prompt}"
                         llm_response_time = 100.0
             
-            # Track cost for this batch item
             cost_info = cost_tracker.track_request_cost(
                 model_name=recommended_model,
                 prompt=prompt,
                 response=llm_response,
                 session_id=request.session_id if hasattr(request, 'session_id') else None,
                 use_cached_input=False,
-                use_batch_api=True  # Batch processing gets batch pricing
+                use_batch_api=True
             )
             
             results.append(RoutingResponse(
@@ -937,4 +925,5 @@ async def get_stats():
     }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
