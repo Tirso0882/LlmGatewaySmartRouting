@@ -5,15 +5,13 @@ This module implements inference-only functionality for DistilBERT-based
 LLM routing classification, optimized for production deployment.
 """
 
-import json
 import os
 import pickle
 import warnings
 from typing import List, Tuple
 
-import numpy as np
+import joblib
 import torch
-from sklearn.preprocessing import LabelEncoder
 from transformers import (DistilBertForSequenceClassification,
                           DistilBertTokenizer)
 
@@ -56,7 +54,6 @@ class DistilBERTFineTuner:
             print(f"🔄 Loading model from: {load_path}")
             print(f"📁 Checking if path exists: {os.path.exists(load_path)}")
             
-            # Load model and tokenizer
             print("🤖 Loading DistilBERT model...")
             self.model = DistilBertForSequenceClassification.from_pretrained(load_path)
             print("📝 Loading tokenizer...")
@@ -64,11 +61,8 @@ class DistilBERTFineTuner:
             print(f"🔧 Moving model to device: {self.device}")
             self.model.to(self.device)
             
-            # Load label encoder
             print("🏷️ Loading label encoder...")
-            import pickle
 
-            import joblib
             label_encoder_path = os.path.join(load_path, 'label_encoder.pkl')
             print(f"📁 Label encoder path: {label_encoder_path}")
             print(f"📁 Label encoder exists: {os.path.exists(label_encoder_path)}")
@@ -98,7 +92,6 @@ class DistilBERTFineTuner:
                 self.num_labels = 3
                 print("⚠️ Using default labels (label encoder has no classes_)")
             
-            # Final state check
             print(f"🔍 Final state check:")
             print(f"   model is None: {self.model is None}")
             print(f"   tokenizer is None: {self.tokenizer is None}")
@@ -118,7 +111,6 @@ class DistilBERTFineTuner:
     
     def predict(self, prompts: List[str]) -> Tuple[List[str], List[float]]:
         """Make predictions on new prompts - using exact working logic from distilbert_finetuner.py"""
-        # Enhanced debugging for Azure deployment
         print(f"🔍 Debug - Model state check:")
         print(f"   model is None: {self.model is None}")
         print(f"   tokenizer is None: {self.tokenizer is None}")
@@ -154,7 +146,7 @@ class DistilBERTFineTuner:
                     outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
                     logits = outputs.logits
                     
-                    # Get prediction and confidence - EXACT same logic as working version
+                    # Get prediction and confidence
                     probabilities = torch.softmax(logits, dim=-1)
                     predicted_class = torch.argmax(probabilities, dim=-1).item()
                     confidence = torch.max(probabilities).item()
@@ -178,10 +170,8 @@ class DistilBERTFineTuner:
 if __name__ == "__main__":
     print("🧪 Testing DistilBERT Inference Module")
     
-    # Initialize the model
     fine_tuner = DistilBERTFineTuner()
     
-    # Test prompts covering different complexity levels
     test_prompts = [
         "What is the weather like today?",  # Simple question - should route to gpt-4o-mini
         "Write a complex research paper about quantum computing with detailed analysis",  # Complex task - should route to o3
@@ -196,7 +186,6 @@ if __name__ == "__main__":
     print(f"🤖 Device: {fine_tuner.device}")
     print(f"📝 Testing with {len(test_prompts)} prompts")
     
-    # Try to load the model if it exists
     model_path = "../models/distilbert_llm_router"
     if os.path.exists(model_path):
         print(f"📁 Loading model from: {model_path}")

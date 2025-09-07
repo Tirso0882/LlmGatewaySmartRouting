@@ -362,8 +362,7 @@ class PromptAnalyzer:
 
 if __name__ == "__main__":
     analyzer = PromptAnalyzer()
-    
-    # Test cases
+
     test_prompts = [
         "What is the weather like today?",
         "Write a Python function to sort a list of numbers",

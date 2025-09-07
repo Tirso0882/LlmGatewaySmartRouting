@@ -5,13 +5,11 @@ This module creates a synthetic dataset for training a DistilBERT model
 to classify prompts and route them to appropriate LLMs.
 """
 
-import json
+import os
 import random
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
-import numpy as np
 import pandas as pd
 
 
@@ -39,7 +37,7 @@ class DatasetGenerator:
         """Create comprehensive prompt templates for different scenarios"""
         
         templates = [
-            # Speed-optimized prompts (gpt-4o-mini)
+            # Speed-optimized prompts (gpt-4o-mini) 
             PromptTemplate(
                 "What is {topic}?",
                 "simple", "general", "gpt-4o-mini", ["question", "simple"]
@@ -119,7 +117,6 @@ class DatasetGenerator:
     def _fill_template(self, template: PromptTemplate) -> Tuple[str, str]:
         """Fill template with realistic values"""
         
-        # Define replacement values based on template content
         replacements = {
             # General topics
             'topic': ['artificial intelligence', 'climate change', 'blockchain', 'democracy', 
@@ -163,7 +160,6 @@ class DatasetGenerator:
             'concept2': ['Vue', 'GraphQL', 'NoSQL', 'unsupervised learning'],
         }
         
-        # Fill template
         filled_template = template.template
         for placeholder, values in replacements.items():
             if f'{{{placeholder}}}' in filled_template:
@@ -178,7 +174,7 @@ class DatasetGenerator:
         
         data = []
         
-        # Ensure balanced classes
+        # Ensure balanced classes by splitting samples evenly among models
         samples_per_model = size // 3
         
         for model in ['gpt-4o-mini', 'o4-mini', 'o3']:
@@ -234,25 +230,62 @@ class DatasetGenerator:
         
         return df
     
+    def _ensure_data_directory(self, filepath: str):
+        """Ensure the data directory exists, create if it doesn't"""
+        directory = os.path.dirname(filepath)
+        
+        if directory and not os.path.exists(directory):
+            print(f"📁 Creating directory: {directory}")
+            os.makedirs(directory, exist_ok=True)
+            print(f"✅ Directory created successfully")
+        elif directory and os.path.exists(directory):
+            print(f"✅ Directory exists: {directory}")
+        else:
+            print(f"📁 Saving to current directory")
+    
     def save_dataset(self, df: pd.DataFrame, filepath: str):
-        """Save dataset to file"""
+        """Save dataset to file with automatic directory creation"""
+        self._ensure_data_directory(filepath)
+        
         df.to_csv(filepath, index=False)
-        print(f"Dataset saved to {filepath}")
-        print(f"Dataset shape: {df.shape}")
-        print(f"Target distribution:\n{df['target_model'].value_counts()}")
+        print(f"💾 Dataset saved to {filepath}")
+        print(f"📊 Dataset shape: {df.shape}")
+        print(f"🎯 Target distribution:\n{df['target_model'].value_counts()}")
 
 if __name__ == "__main__":
-    # Generate and save dataset
+    print("🚀 Starting LLM Routing Dataset Generation")
+    print("=" * 50)
+    
+    current_dir = os.getcwd()
+    print(f"📂 Current working directory: {current_dir}")
+    
     generator = DatasetGenerator()
     
-    # Generate different sized datasets
+    print("\n📊 Generating training dataset...")
     train_df = generator.generate_dataset(size=1000)
+    
+    print("\n📊 Generating test dataset...")
     test_df = generator.generate_dataset(size=200)
     
-    # Save datasets
+    print("\n💾 Saving datasets...")
     generator.save_dataset(train_df, "data/llm_routing_train.csv")
     generator.save_dataset(test_df, "data/llm_routing_test.csv")
     
-    print("\nDataset generation completed!")
-    print(f"Training set: {len(train_df)} samples")
-    print(f"Test set: {len(test_df)} samples")
+    print("\n🎉 Dataset generation completed!")
+    print("=" * 50)
+    print(f"📈 Training set: {len(train_df)} samples")
+    print(f"📈 Test set: {len(test_df)} samples")
+    print(f"📁 Files saved to: {os.path.join(current_dir, 'data')}")
+    
+    # Verify files were created
+    train_file = "data/llm_routing_train.csv"
+    test_file = "data/llm_routing_test.csv"
+    
+    if os.path.exists(train_file) and os.path.exists(test_file):
+        print("✅ All dataset files created successfully!")
+        print(f"   - {train_file}: {os.path.getsize(train_file)} bytes")
+        print(f"   - {test_file}: {os.path.getsize(test_file)} bytes")
+    else:
+        print("❌ Error: Some dataset files were not created")
+        print(f"   - {train_file}: {'✅' if os.path.exists(train_file) else '❌'}")
+        print(f"   - {test_file}: {'✅' if os.path.exists(test_file) else '❌'}")

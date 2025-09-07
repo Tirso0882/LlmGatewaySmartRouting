@@ -47,7 +47,7 @@ class ModelComparison:
     confusion_matrix: np.ndarray
 
 class EvaluationFramework:
-    """Comprehensive evaluation framework for LLM routing models"""
+    """Evaluation framework for LLM routing models"""
     
     def __init__(self):
         self.results = {}
@@ -69,10 +69,8 @@ class EvaluationFramework:
             prompt = row['prompt']
             true_label = row['target_model']
             
-            # Measure inference time
             start_time = time.time()
             
-            # Analyze prompt and get recommendation
             analysis = analyzer.analyze_prompt(prompt)
             recommended_model = analysis.recommended_model
             
@@ -399,11 +397,8 @@ class EvaluationFramework:
 if __name__ == "__main__":
     
     evaluator = EvaluationFramework()
-    
     test_df = pd.read_csv("data/llm_routing_test.csv")
-    
     results = evaluator.compare_models(test_df)
-    
     evaluator.save_results()
     
     print("Evaluation completed!")

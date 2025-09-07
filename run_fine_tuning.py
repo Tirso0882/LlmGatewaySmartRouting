@@ -157,7 +157,7 @@ def main():
         else:
             print("⚠️ Rule-based model shows better accuracy")
             
-        if fine_tuned_metrics['inference_time_ms'] < 100:  # Less than 100ms
+        if fine_tuned_metrics['inference_time_ms'] < 100:
             print("✅ Fine-tuned model meets latency requirements")
         else:
             print("⚠️ Fine-tuned model may be too slow for production")
