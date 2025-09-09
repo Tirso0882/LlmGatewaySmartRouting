@@ -1,0 +1,16 @@
+{
+  "evaluation_date": "2025-09-09T11:24:58.805944",
+  "dataset_size": 200,
+  "rule_based": {
+    "accuracy": 0.58,
+    "inference_time_s": 0.021292924880981445
+  },
+  "distilbert": {
+    "accuracy": 1.0,
+    "inference_time_s": 0.021141940355300905
+  },
+  "comparison": {
+    "accuracy_improvement_pct": 72.41379310344828,
+    "speed_trade_off_ratio": 0.9929091692886496
+  }
+}

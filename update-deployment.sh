@@ -59,7 +59,7 @@ echo "   API Docs: $PUBLIC_URL/docs"
 
 # 5. Test the deployment
 echo "🧪 Testing deployment..."
-sleep 30  # Wait for app to start
+sleep 30
 
 if curl -f $PUBLIC_URL/health; then
     echo "✅ Health check passed!"
@@ -68,5 +68,5 @@ else
     echo "Check app logs: az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP"
 fi
 
-echo "🎉 Update complete! Your LLM Gateway has been updated."
-echo "🔗 Access your app at: $PUBLIC_URL"
+echo "🎉 Update complete! LLM Gateway has been updated."
+echo "🔗 Access the app at: $PUBLIC_URL"

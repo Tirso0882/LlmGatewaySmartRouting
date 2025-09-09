@@ -116,7 +116,11 @@ class PromptAnalyzer:
         # Model configurations - Latest Azure OpenAI Models
         self.model_configs = {
             'o3': {
-                'cost_per_1k_tokens': 0.060,  # Premium pricing for highest accuracy
+                'input_cost_per_1k_tokens': 0.002,  # $2.00 per 1M tokens
+                'output_cost_per_1k_tokens': 0.008,  # $8.00 per 1M tokens
+                'cached_input_cost_per_1k_tokens': 0.0005,  # $0.50 per 1M tokens
+                'batch_input_cost_per_1k_tokens': 0.001,  # $1.00 per 1M tokens
+                'batch_output_cost_per_1k_tokens': 0.004,  # $4.00 per 1M tokens
                 'avg_response_time_ms': 5000,  # Slower for advanced reasoning
                 'max_tokens': 100000,
                 'use_cases': ['complex_reasoning', 'advanced_analysis', 'stem_problems', 'accuracy_priority'],
@@ -124,7 +128,9 @@ class PromptAnalyzer:
                 'specialty': 'Advanced reasoning and logic, excels at complex STEM tasks'
             },
             'gpt-4o-mini': {
-                'cost_per_1k_tokens': 0.0001,  # Most cost-effective for speed
+                'input_cost_per_1k_tokens': 0.0006,  # $0.60 per 1M tokens
+                'output_cost_per_1k_tokens': 0.0024,  # $2.40 per 1M tokens
+                'cached_input_cost_per_1k_tokens': 0.0003,  # $0.30 per 1M tokens
                 'avg_response_time_ms': 400,    # Fastest response time
                 'max_tokens': 16384,
                 'use_cases': ['simple_qa', 'chat', 'high_volume', 'speed_priority'],
@@ -132,7 +138,11 @@ class PromptAnalyzer:
                 'specialty': 'Optimized for speed and cost-efficiency for high-volume tasks'
             },
             'o4-mini': {
-                'cost_per_1k_tokens': 0.005,  # Balanced cost-performance
+                'input_cost_per_1k_tokens': 0.0011,  # $1.10 per 1M tokens
+                'output_cost_per_1k_tokens': 0.0044,  # $4.40 per 1M tokens
+                'cached_input_cost_per_1k_tokens': 0.00028,  # $0.28 per 1M tokens
+                'batch_input_cost_per_1k_tokens': 0.00055,  # $0.55 per 1M tokens
+                'batch_output_cost_per_1k_tokens': 0.0022,  # $2.20 per 1M tokens
                 'avg_response_time_ms': 2000,  # Moderate response time
                 'max_tokens': 16384,
                 'use_cases': ['balanced_tasks', 'cost_efficient', 'general_purpose', 'cost_priority'],
@@ -349,7 +359,9 @@ class PromptAnalyzer:
             return 0.0
             
         config = self.model_configs[model_name]
-        return (token_count / 1000) * config['cost_per_1k_tokens']
+        # Use average of input and output costs for estimation
+        avg_cost_per_1k = (config['input_cost_per_1k_tokens'] + config['output_cost_per_1k_tokens']) / 2
+        return (token_count / 1000) * avg_cost_per_1k
 
     def get_model_info(self, model_name: str) -> Dict:
         """Get information about a specific model"""

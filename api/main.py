@@ -22,6 +22,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+BLOCK_LLM_RESPONSES = os.getenv("BLOCK_LLM_RESPONSES", "false").lower() == "true"
+
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 
@@ -226,6 +228,26 @@ def rule_based_routing(prompt: str):
     else:
         return 'o4-mini', 0.75
 
+def generate_blocked_response(model_name: str, prompt: str) -> tuple[str, float]:
+    """Generate a minimal response when LLM responses are blocked for performance testing"""
+    blocked_response = f"""🚫 LLM Response Blocked (Performance Testing Mode)
+
+Model Selected: {model_name}
+Prompt: {prompt[:100]}{'...' if len(prompt) > 100 else ''}
+
+This response was blocked to isolate routing performance testing.
+The routing system successfully selected {model_name} as the optimal model.
+
+Routing Performance Metrics:
+- Model Selection: ✅ Completed
+- LLM Generation: 🚫 Blocked for testing
+- Total Time: Routing time only (no LLM generation time)
+
+To enable LLM responses, set BLOCK_LLM_RESPONSES=false in environment variables."""
+    
+    # Return minimal response time for performance testing
+    return blocked_response, 1.0
+
 def format_llm_response_beautifully(response: str, model_name: str, prompt: str, response_time: float) -> str:
     """Format any LLM response beautifully with proper structure and styling"""
     
@@ -389,6 +411,7 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "health": "/health",
+            "status": "/status",
             "route": "/route",
             "batch": "/route/batch",
             "models": "/models",
@@ -397,7 +420,8 @@ async def root():
             "costs": "/costs",
             "pricing": "/pricing",
             "dashboard": "/dashboard"
-        }
+        },
+        "llm_responses_blocked": BLOCK_LLM_RESPONSES
     }
 
 @app.get("/health", response_model=HealthResponse)
@@ -408,6 +432,21 @@ async def health_check():
         model_loaded=fine_tuner is not None and fine_tuner.is_model_loaded(),
         available_models=list(AVAILABLE_MODELS.keys())
     )
+
+@app.get("/status")
+async def get_status():
+    """Get current system status including LLM blocking status"""
+    return {
+        "status": "healthy",
+        "llm_responses_blocked": BLOCK_LLM_RESPONSES,
+        "blocking_reason": "Performance testing mode - LLM responses disabled" if BLOCK_LLM_RESPONSES else "LLM responses enabled",
+        "model_loaded": fine_tuner is not None and fine_tuner.is_model_loaded(),
+        "available_models": list(AVAILABLE_MODELS.keys()),
+        "environment": {
+            "BLOCK_LLM_RESPONSES": os.getenv("BLOCK_LLM_RESPONSES", "false"),
+            "routing_modes": ["rule-based", "distilbert"]
+        }
+    }
 
 @app.get("/dashboard")
 async def dashboard():
@@ -506,8 +545,12 @@ async def route_prompt(request: RoutingRequest):
         
         print(f"💡 Reasoning: {reasoning}")
         
-        # Generate response based on routing mode
-        if request.routing_mode == "rule-based":
+        # Generate response based on routing mode and blocking toggle
+        if BLOCK_LLM_RESPONSES:
+            print("🚫 LLM responses blocked for performance testing...")
+            llm_response, llm_response_time = generate_blocked_response(recommended_model, request.prompt)
+            print(f"✅ Blocked response generated in {llm_response_time:.2f}ms")
+        elif request.routing_mode == "rule-based":
             print("📋 Using mock response for rule-based routing...")
             try:
                 llm_response, llm_response_time = mock_llm.generate_response(recommended_model, request.prompt)
@@ -698,7 +741,11 @@ async def generate_llm_response(request: LLMRequest):
     print(f"🤖 Generating LLM response for {request.model}...")
     
     try:
-        if request.routing_mode == "rule-based":
+        if BLOCK_LLM_RESPONSES:
+            print("🚫 LLM responses blocked for performance testing...")
+            llm_response, llm_response_time = generate_blocked_response(request.model, request.prompt)
+            print(f"✅ Blocked response generated in {llm_response_time:.2f}ms")
+        elif request.routing_mode == "rule-based":
             print("📋 Using mock response for rule-based routing...")
             try:
                 llm_response, llm_response_time = mock_llm.generate_response(request.model, request.prompt)
@@ -858,7 +905,9 @@ async def route_batch(request: BatchRoutingRequest):
             model_info = AVAILABLE_MODELS[recommended_model]
             reasoning = f"[{routing_method}] Selected {recommended_model} ({model_info['description']}) with {confidence:.2%} confidence"
             
-            if request.routing_mode == "rule-based":
+            if BLOCK_LLM_RESPONSES:
+                llm_response, llm_response_time = generate_blocked_response(recommended_model, prompt)
+            elif request.routing_mode == "rule-based":
                 try:
                     llm_response, llm_response_time = mock_llm.generate_response(recommended_model, prompt)
                 except Exception as e:

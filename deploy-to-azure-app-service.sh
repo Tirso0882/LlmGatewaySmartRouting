@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Azure App Service Deployment Script
-# This script deploys your LLM Gateway to Azure App Service with ACR
+# This script deploys LLM Gateway to Azure App Service with ACR
 
 set -e
 
@@ -134,5 +134,5 @@ else
     az webapp log tail --name $APP_NAME --resource-group $RESOURCE_GROUP
 fi
 
-echo "🎉 Setup complete! Your LLM Gateway is now running on Azure App Service."
-echo "🔗 Access your app at: $PUBLIC_URL"
+echo "🎉 Setup complete! LLM Gateway is now running on Azure App Service."
+echo "🔗 Access the app at: $PUBLIC_URL"
